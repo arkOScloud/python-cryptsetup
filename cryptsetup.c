@@ -6,6 +6,16 @@
 
 #include "libcryptsetup.h"
 
+typedef struct {
+  PyObject_HEAD
+
+  /* Type-specific fields go here. */
+  PyObject *yesDialogCB;
+  PyObject *cmdLineLogCB;
+  struct interface_callbacks cmd_icb; /* cryptsetup CB structure */
+} CryptSetupObject;
+
+CryptSetupObject *this; /* hack because the #%^#$% has no user data pointer for CBs */
 
 int yesDialog(char *msg)
 {
@@ -22,7 +32,7 @@ int yesDialog(char *msg)
 
     if (result == NULL) return 0;
     ok = PyArg_ParseTuple(result, "i", &res);
-    if(not ok){
+    if(!ok){
       res = 0;
     }
 
@@ -48,15 +58,6 @@ void cmdLineLog(int cls, char *msg)
   }
 }
 
-typedef struct {
-  PyObject_HEAD
-
-  /* Type-specific fields go here. */
-  PyObject *yesDialogCB;
-  PyObject *cmdLineLogCB;
-  struct interface_callbacks cmd_icb; /* cryptsetup CB structure */
-} CryptSetupObject;
-
 static void CryptSetup_dealloc(CryptSetupObject* self)
 {
   /* free the callbacks */
@@ -77,8 +78,8 @@ static PyObject *CryptSetup_new(PyTypeObject *type, PyObject *args, PyObject *kw
     memset(&(self->cmd_icb), 0, sizeof(struct interface_callbacks));
     
     /* set the callback proxies */
-    self->cmd_icb.yesDialog = &(self->yesDialog);
-    self->cmd_icb.log = &(self->cmdLineLog);
+    self->cmd_icb.yesDialog = &(yesDialog);
+    self->cmd_icb.log = &(cmdLineLog);
   }
 
   return (PyObject *)self;
@@ -175,7 +176,10 @@ static PyObject *CryptSetup_luksUUID(CryptSetupObject* self, PyObject *args, PyO
   struct crypt_options co = {
     .device = device,
     .icb = &(self->cmd_icb),
-  }
+  };
+
+  /* hack, because the #&^#%& API has no user data pointer */
+  this = self;
 
   uuid = crypt_luksUUID(&co);
 
@@ -203,7 +207,10 @@ static PyObject *CryptSetup_isLuks(CryptSetupObject* self, PyObject *args, PyObj
   struct crypt_options co = {
     .device = device,
     .icb = &(self->cmd_icb),
-  }
+  };
+
+  /* hack, because the #&^#%& API has no user data pointer */
+  this = self;
 
   is = crypt_isLuks(&co);
 
@@ -230,11 +237,14 @@ static PyObject *CryptSetup_luksStatus(CryptSetupObject* self, PyObject *args, P
   struct crypt_options co = {
     .name = device,
     .icb = &(self->cmd_icb),
-  }
+  };
+
+  /* hack, because the #&^#%& API has no user data pointer */
+  this = self;
 
   is = crypt_query_device(&co);
 
-  if(r>0){
+  if(is>0){
     result = Py_BuildValue("{s:s,s:s,s:s,s:i,s:s,s:K,s:K,s:K,s:s}",
 	"dir", crypt_get_dir(),
 	"name", co.name,
@@ -288,7 +298,10 @@ static PyObject *CryptSetup_luksFormat(CryptSetupObject* self, PyObject *args, P
     .iteration_time = 1000,
     .align_payload = 0,
     .icb = &(self->cmd_icb),
-  }
+  };
+
+  /* hack, because the #&^#%& API has no user data pointer */
+  this = self;
 
   is = crypt_luksFormat(&co);
 
@@ -319,7 +332,10 @@ static PyObject *CryptSetup_luksOpen(CryptSetupObject* self, PyObject *args, PyO
     .name = name,
     .key_file = keyfile,
     .icb = &(self->cmd_icb),
-  }
+  };
+
+  /* hack, because the #&^#%& API has no user data pointer */
+  this = self;
 
   is = crypt_luksOpen(&co);
 
@@ -346,7 +362,10 @@ static PyObject *CryptSetup_luksClose(CryptSetupObject* self, PyObject *args, Py
   struct crypt_options co = {
     .name = device,
     .icb = &(self->cmd_icb),
-  }
+  };
+
+  /* hack, because the #&^#%& API has no user data pointer */
+  this = self;
 
   is = crypt_remove_device(&co);
 
