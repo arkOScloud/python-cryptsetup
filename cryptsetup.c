@@ -379,6 +379,8 @@ static PyObject *CryptSetup_luksClose(CryptSetupObject* self, PyObject *args, Py
 }
 
 static PyMemberDef CryptSetup_members[] = {
+  {"yesDialogCB", T_OBJECT_EX, offsetof(CryptSetupObject, yesDialogCB), 0, "confirmation dialog callback"},
+  {"cmdLineLogCB", T_OBJECT_EX, offsetof(CryptSetupObject, cmdLineLogCB), 0, "logging callback"},
   {NULL}
 };
 
