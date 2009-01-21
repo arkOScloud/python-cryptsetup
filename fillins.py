@@ -1,6 +1,6 @@
 # File name: fillins.py
 # Date:      2009/01/19
-# Author:    Martin Sivak
+# Author:    Dave Lehman, Martin Sivak
 #
 # Copyright (C) Red Hat 2009
 #
@@ -18,6 +18,64 @@
 # in a file called COPYING along with this program; if not, write to
 # the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA
 # 02139, USA.
+
+import subprocess
+import os, string, stat
+import os.path
+from errno import *
+
+## Run an external program and redirect the output to a file.
+# @param command The command to run.
+# @param argv A list of arguments.
+# @param stdin The file descriptor to read stdin from.
+# @param stdout The file descriptor to redirect stdout to.
+# @param stderr The file descriptor to redirect stderr to.
+# @param searchPath Should command be searched for in $PATH?
+# @param root The directory to chroot to before running command.
+# @return The return code of command.
+def execWithRedirect(command, argv, stdin = 0, stdout = 1, stderr = 2,
+                     searchPath = 0, root = '/'):
+    def chroot ():
+        os.chroot(root)
+
+        if not searchPath and not os.access (command, os.X_OK):
+            raise RuntimeError, command + " can not be run"
+
+    argv = list(argv)
+    if type(stdin) == type("string"):
+        if os.access(stdin, os.R_OK):
+            stdin = open(stdin)
+        else:
+            stdin = 0
+    if type(stdout) == type("string"):
+        stdout = open(stdout, "w")
+    if type(stderr) == type("string"):
+        stderr = open(stderr, "w")
+
+    if stdout is not None and type(stdout) != int:
+        stdout.write("Running... %s\n" %([command] + argv,))
+
+    try:
+        proc = subprocess.Popen([command] + argv, stdin=stdin,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                preexec_fn=chroot, cwd=root)
+
+        while True:
+            (outStr, errStr) = proc.communicate()
+            if outStr:
+                stdout.write(outStr)
+            if errStr:
+                stderr.write(errStr)
+
+            if proc.returncode is not None:
+                ret = proc.returncode
+                break
+    except OSError, (errno, msg):
+        raise RuntimeError, errstr
+
+    return ret
+
 
 def luks_add_key(device,
                  new_passphrase=None, new_key_file=None,
@@ -42,7 +100,7 @@ def luks_add_key(device,
 
     os.close(p[1])
 
-    rc = iutil.execWithRedirect("cryptsetup",
+    rc = execWithRedirect("cryptsetup",
                                 ["-q",
                                  key_spec,
                                  "luksAddKey",
@@ -80,7 +138,7 @@ def luks_remove_key(device,
 
     os.close(p[1])
 
-    rc = iutil.execWithRedirect("cryptsetup",
+    rc = execWithRedirect("cryptsetup",
                                 ["-q",
                                  key_spec,
                                  "luksRemoveKey",

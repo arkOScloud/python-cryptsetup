@@ -23,9 +23,9 @@ import cryptsetup
 import fillins
 
 class CryptSetup(cryptsetup.CryptSetup):
-    def add_key(self, *args, **kwargs):
-        return fillins.luks_add_key(*args, **kwargs)
+    def addKey(self, device, new_passphrase=None, new_key_file=None, passphrase=None, key_file=None):
+        return fillins.luks_add_key(device, new_passphrase, new_key_file, passphrase, key_file)
     
-    def remove_key(self, *args, **kwargs):
-        return fillins.luks_remove_key(*args, **kwargs)
+    def removeKey(self, device, del_passphrase=None, del_key_file=None, passphrase=None, key_file=None):
+        return fillins.luks_remove_key(device, del_passphrase, del_key_file, passphrase, key_file)
 
