@@ -2,9 +2,6 @@
 import sys
 import os
 
-sys.path.insert(0, "build/lib.linux-x86_64-2.5/")
-sys.path.insert(0, "../")
-
 import pycryptsetup as cryptsetup
 
 def log(pri, txt):

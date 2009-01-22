@@ -1,4 +1,11 @@
 from distutils.core import setup, Extension
-setup(name="cryptsetup", version="1.0",
-              ext_modules=[Extension("cryptsetup", ["cryptsetup.c"], library_dirs=['.'], libraries=['cryptsetup'])])
+setup(name="pycryptsetup",
+              version = "0.0.1",
+              description = "Python bindings for cryptsetup",
+              author = "Martin Sivak",
+              author_email= "msivak@redhat.com",
+              license = 'GPLv2+',
+              packages = ["pycryptsetup"],
+              ext_modules = [Extension("cryptsetup", ["pycryptsetup/cryptsetup.c"], library_dirs=['.'], libraries=['cryptsetup'])]
+              )
 
