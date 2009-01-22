@@ -46,6 +46,6 @@ A python module to ease the manipulation with LUKS devices.
 # For noarch packages: sitelib
 %{python_sitelib}/pycryptsetup
 %{python_sitelib}/cryptsetup.so
-%{python_sitelib}/%{name}-%{version}-py2.5.egg-info
+#%{python_sitelib}/%{name}-%{version}-py2.5.egg-info
 %attr(0644,root,root) %{_datadir}/doc/%name-%version/COPYING
 
