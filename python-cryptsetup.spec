@@ -1,25 +1,22 @@
-%{!?python_sitelib: %define python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
 %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
-#I don't want the unpackaged file check
-%define _unpackaged_files_terminate_build 0
 
 Name:           python-cryptsetup
 Version:        0.0.1
 Release:        1%{?dist}
 Summary:        Python bindings for cryptsetup
 
-Group:          Applications/System
+Group:          Development/Libraries
 License:        GPLv2+
-URL:            http://fedoraproject.org/wiki/Anaconda/StorageRewrite
+URL:            http://msivak.fedorapeople.org/pycryptsetup/%{name}-%{version}.tar.bz2
 Source0:        %{name}-%{version}.tar.bz2
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-Requires: cryptsetup-luks
+#Requires: cryptsetup-luks
 Requires: python
 
 BuildRequires:  cryptsetup-luks-devel
 BuildRequires:  python
-BuildRequires:  python-devel
+#BuildRequires:  python-devel
 BuildRequires:  python-setuptools-devel
 
 %description
