@@ -3,7 +3,7 @@
 #I don't want the unpackaged file check
 %define _unpackaged_files_terminate_build 0
 
-Name:           pycryptsetup
+Name:           python-cryptsetup
 Version:        0.0.1
 Release:        1%{?dist}
 Summary:        Python bindings for cryptsetup
@@ -15,6 +15,7 @@ Source0:        %{name}-%{version}.tar.bz2
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 Requires: cryptsetup-luks
+Requires: python
 
 BuildRequires:  cryptsetup-luks-devel
 BuildRequires:  python
@@ -31,19 +32,11 @@ A python module to ease the manipulation with LUKS devices.
 %{__python} setup.py build
 
 %install
-%{__rm} -rf $RPM_BUILD_ROOT
+rm -rf $RPM_BUILD_ROOT
 %{__python} setup.py install -O1 --skip-build --root $RPM_BUILD_ROOT
 
-#docs
-%{__install} -d $RPM_BUILD_ROOT%{_datadir}/doc/%name-%version
-%{__install} -p COPYING $RPM_BUILD_ROOT%{_datadir}/doc/%name-%version/COPYING
-
-#examples
-%{__install} -d $RPM_BUILD_ROOT%{_libdir}/pycryptsetup/examples
-%{__mv} -f selftest.py $RPM_BUILD_ROOT%{_libdir}/pycryptsetup/examples
-
 %clean
-%{__rm} -rf $RPM_BUILD_ROOT
+rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
@@ -51,5 +44,11 @@ A python module to ease the manipulation with LUKS devices.
 %{python_sitearch}/pycryptsetup
 %{python_sitearch}/cryptsetup.so
 %{python_sitearch}/%{name}-%{version}-py*.egg-info
-%attr(0644,root,root) %{_datadir}/doc/%name-%version/COPYING
+
+%doc COPYING
+%doc selftest.py
+
+%changelog
+* Thu Jan 22 2009 Martin Sivak <msivak at redhat dot com> - 0.0.1
+- Inital release
 
