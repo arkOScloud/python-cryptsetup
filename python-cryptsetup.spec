@@ -43,7 +43,7 @@ rm -rf $RPM_BUILD_ROOT
 # For noarch packages: sitelib
 %{python_sitearch}/pycryptsetup
 %{python_sitearch}/cryptsetup.so
-%{python_sitearch}/%{name}-%{version}-py*.egg-info
+%{python_sitearch}/*egg-info
 
 %doc COPYING
 %doc selftest.py
