@@ -10,7 +10,7 @@ Summary:        Python bindings for cryptsetup
 
 Group:          Applications/System
 License:        GPLv2+
-URL:            http://fedorahosted.org/firstaidkit
+URL:            http://fedoraproject.org/wiki/Anaconda/StorageRewrite
 Source0:        %{name}-%{version}.tar.bz2
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
