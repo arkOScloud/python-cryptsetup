@@ -1,4 +1,5 @@
 %{!?python_sitelib: %define python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
+%{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 #I don't want the unpackaged file check
 %define _unpackaged_files_terminate_build 0
 
@@ -13,7 +14,10 @@ URL:            http://fedorahosted.org/firstaidkit
 Source0:        %{name}-%{version}.tar.bz2
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
+Requires: cryptsetup-luks
+
 BuildRequires:  cryptsetup-luks-devel
+BuildRequires:  python
 BuildRequires:  python-devel
 BuildRequires:  python-setuptools-devel
 
@@ -44,8 +48,8 @@ A python module to ease the manipulation with LUKS devices.
 %files
 %defattr(-,root,root,-)
 # For noarch packages: sitelib
-%{python_sitelib}/pycryptsetup
-%{python_sitelib}/cryptsetup.so
-#%{python_sitelib}/%{name}-%{version}-py2.5.egg-info
+%{python_sitearch}/pycryptsetup
+%{python_sitearch}/cryptsetup.so
+%{python_sitearch}/%{name}-%{version}-py*.egg-info
 %attr(0644,root,root) %{_datadir}/doc/%name-%version/COPYING
 
