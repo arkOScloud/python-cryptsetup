@@ -7,7 +7,7 @@ Summary:        Python bindings for cryptsetup
 
 Group:          Development/Libraries
 License:        GPLv2+
-Url:		http://msivak.fedorapeople.org/pycryptsetup
+Url:            http://msivak.fedorapeople.org/pycryptsetup
 Source:         http://msivak.fedorapeople.org/pycryptsetup/%{name}-%{version}.tar.bz2
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -42,6 +42,6 @@ rm -rf $RPM_BUILD_ROOT
 %doc selftest.py
 
 %changelog
-* Thu Jan 22 2009 Martin Sivak <msivak at redhat dot com> - 0.0.1
+* Thu Jan 22 2009 Martin Sivak <msivak at redhat dot com> - 0.0.1-1
 - Inital release
 
