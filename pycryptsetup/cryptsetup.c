@@ -125,8 +125,8 @@ static PyObject *CryptSetup_askyes(CryptSetupObject* self, PyObject *args, PyObj
   Py_INCREF(message);
   arglist = Py_BuildValue("(O)", message);
   if(!arglist){
-    printf("Neco je spatne...\n");
-    return Py_None;
+    PyErr_SetString(PyExc_RuntimeError, "Error during constructing values for internal call");
+    return NULL;
   }
   result = PyEval_CallObject(self->yesDialogCB, arglist);
   Py_DECREF(arglist);
@@ -151,8 +151,8 @@ static PyObject *CryptSetup_log(CryptSetupObject* self, PyObject *args, PyObject
   Py_INCREF(priority);
   arglist = Py_BuildValue("(OO)", message, priority);
   if(!arglist){
-    printf("Neco je spatne...\n");
-    return Py_None;
+    PyErr_SetString(PyExc_RuntimeError, "Error during constructing values for internal call");
+    return NULL;
   }
   result = PyEval_CallObject(self->cmdLineLogCB, arglist);
   Py_DECREF(arglist);
@@ -185,8 +185,8 @@ static PyObject *CryptSetup_luksUUID(CryptSetupObject* self, PyObject *args, PyO
 
   result = Py_BuildValue("i", uuid);
   if(!result){
-    printf("Neco je spatne...\n");
-    return Py_None;
+    PyErr_SetString(PyExc_RuntimeError, "Error during constructing values for return value");
+    return NULL;
   }
 
   return result;
@@ -216,8 +216,8 @@ static PyObject *CryptSetup_isLuks(CryptSetupObject* self, PyObject *args, PyObj
 
   result = Py_BuildValue("i", is);
   if(!result){
-    printf("Neco je spatne...\n");
-    return Py_None;
+    PyErr_SetString(PyExc_RuntimeError, "Error during constructing values for return value");
+    return NULL;
   }
 
   return result;
@@ -259,16 +259,16 @@ static PyObject *CryptSetup_luksStatus(CryptSetupObject* self, PyObject *args, P
     crypt_put_options(&co);
 
     if(!result){
-      printf("Neco je spatne...\n");
-      return Py_None;
+      PyErr_SetString(PyExc_RuntimeError, "Error during constructing values for return value");
+      return NULL;
     }
 
   }
   else{
     result = Py_BuildValue("i", is);
     if(!result){
-      printf("Neco je spatne...\n");
-      return Py_None;
+      PyErr_SetString(PyExc_RuntimeError, "Error during constructing values for return value");
+      return NULL;
     }
   }
 
@@ -307,8 +307,8 @@ static PyObject *CryptSetup_luksFormat(CryptSetupObject* self, PyObject *args, P
 
   result = Py_BuildValue("i", is);
   if(!result){
-    printf("Neco je spatne...\n");
-    return Py_None;
+    PyErr_SetString(PyExc_RuntimeError, "Error during constructing values for return value");
+    return NULL;
   }
 
   return result;
@@ -341,8 +341,8 @@ static PyObject *CryptSetup_luksOpen(CryptSetupObject* self, PyObject *args, PyO
 
   result = Py_BuildValue("i", is);
   if(!result){
-    printf("Neco je spatne...\n");
-    return Py_None;
+    PyErr_SetString(PyExc_RuntimeError, "Error during constructing values for return value");
+    return NULL;
   }
 
   return result;
@@ -371,8 +371,8 @@ static PyObject *CryptSetup_luksClose(CryptSetupObject* self, PyObject *args, Py
 
   result = Py_BuildValue("i", is);
   if(!result){
-    printf("Neco je spatne...\n");
-    return Py_None;
+    PyErr_SetString(PyExc_RuntimeError, "Error during constructing values for return value");
+    return NULL;
   }
 
   return result;

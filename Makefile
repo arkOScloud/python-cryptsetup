@@ -15,7 +15,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
-NAME := "python-cryptsetup"
+NAME := python-cryptsetup
 VERSION := $(shell awk '/Version:/ { print $$2 }' python-cryptsetup.spec)
 RELEASE := $(shell awk '/Release:/ { print $$2 }' python-cryptsetup.spec)
 DATADIR := $(shell rpm --eval "%_datadir")
@@ -24,7 +24,9 @@ tarball:
 	git-archive --format=tar --prefix=$(NAME)-$(VERSION)/ HEAD | bzip2 -f > $(NAME)-$(VERSION).tar.bz2
 
 srpm: tarball
-	rpmbuild -ts --nodeps $(NAME)-$(VERSION).tar.bz2
+	mkdir -p $(HOME)/rpm/SOURCES
+	cp $(NAME)-$(VERSION).tar.bz2 $(HOME)/rpm/SOURCES
+	rpmbuild -bs --nodeps $(NAME).spec
 	rm -f $(NAME)-$(VERSION).tar.bz2
 
 bumpver:

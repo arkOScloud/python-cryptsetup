@@ -1,7 +1,7 @@
 %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 
 Name:           python-cryptsetup
-Version:        0.0.1
+Version:        0.0.2
 Release:        1%{?dist}
 Summary:        Python bindings for cryptsetup
 
@@ -42,6 +42,9 @@ rm -rf $RPM_BUILD_ROOT
 %doc selftest.py
 
 %changelog
+* Mon Feb 23 2009 Martin Sivak <msivak at redhat dot com> - 0.0.2-1
+- Throw a runtime exception when buildvalue problem is encountered
+
 * Thu Jan 22 2009 Martin Sivak <msivak at redhat dot com> - 0.0.1-1
 - Inital release
 
