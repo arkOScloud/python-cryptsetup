@@ -1,6 +1,6 @@
 from distutils.core import setup, Extension
 setup(name="pycryptsetup",
-              version = '0.0.5',
+              version = '0.0.6',
               description = "Python bindings for cryptsetup",
               author = "Martin Sivak",
               author_email= "msivak@redhat.com",

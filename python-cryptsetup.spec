@@ -1,7 +1,7 @@
 %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 
 Name:           python-cryptsetup
-Version:        0.0.5
+Version:        0.0.6
 Release:        1%{?dist}
 Summary:        Python bindings for cryptsetup
 
@@ -42,6 +42,10 @@ rm -rf $RPM_BUILD_ROOT
 %doc selftest.py
 
 %changelog
+* Mon Mar 01 2009 Martin Sivak <msivak at redhat dot com> - 0.0.5-1
+- fix the UUID extraction logic
+- fix the key manipulation
+
 * Mon Mar 01 2009 Martin Sivak <msivak at redhat dot com> - 0.0.5-1
 - fix the luksUUID
 
