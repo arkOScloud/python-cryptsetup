@@ -61,6 +61,7 @@ void cmdLineLog(int cls, char *msg)
 
 void uuidLog(int cls, char* uuid)
 {
+  if(!uuid || uuid[0]=='\n') return;
   if(this->uuid) free(this->uuid);
   this->uuid = strdup(uuid);
 }

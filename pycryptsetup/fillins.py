@@ -25,6 +25,8 @@ import os.path
 from errno import *
 from tempfile import mkstemp
 
+_ = lambda x: x
+
 ## Run an external program and redirect the output to a file.
 # @param command The command to run.
 # @param argv A list of arguments.
@@ -82,31 +84,28 @@ def luks_add_key(device,
                  new_passphrase=None, new_key_file=None,
                  passphrase=None, key_file=None):
 
+    params = ["-q"]
+
     p = os.pipe()
     if passphrase:
         os.write(p[1], "%s\n" % passphrase)
-        key_spec = ""
     elif key_file and os.path.isfile(key_file):
-        key_spec = "--key-file %s" % key_file
+        params.append("--key-file %s" % key_file)
     else:
         raise ValueError(_("luks_add_key requires either a passphrase or a key file"))
 
+    params.extend(["luksAddKey", device])
+
     if new_passphrase:
         os.write(p[1], "%s\n" % new_passphrase)
-        new_key_spec = ""
     elif new_key_file and os.path.isfile(new_key_file):
-        new_key_spec = "%s" % new_key_file
+        params.append("%s" % new_key_file)
     else:
         raise ValueError(_("luks_add_key requires either a passphrase or a key file to add"))
 
     os.close(p[1])
 
-    rc = execWithRedirect("cryptsetup",
-                                ["-q",
-                                 key_spec,
-                                 "luksAddKey",
-                                 device,
-                                 new_key_spec],
+    rc = execWithRedirect("cryptsetup", params,
                                 stdin = p[0],
                                 stdout = "/dev/null",
                                 stderr = "/dev/null",
@@ -114,37 +113,34 @@ def luks_add_key(device,
 
     os.close(p[0])
     if rc:
-        raise RuntimeError(_("luks add key failed"))
+        raise RuntimeError(_("luks add key failed with errcode %d") % (rc,))
 
 def luks_remove_key(device,
                     del_passphrase=None, del_key_file=None,
                     passphrase=None, key_file=None):
 
+    params = ["-q"]
+
     p = os.pipe()
     if passphrase:
         os.write(p[1], "%s\n" % passphrase)
-        key_spec = ""
     elif key_file and os.path.isfile(key_file):
-        key_spec = "--key-file %s" % key_file
+        params.append("--key-file %s" % key_file)
     else:
         raise ValueError(_("luks_remove_key requires either a passphrase or a key file"))
 
+    params.extend(["luksRemoveKey", device])
+
     if del_passphrase:
         os.write(p[1], "%s\n" % del_passphrase)
-        del_key_spec = ""
     elif del_key_file and os.path.isfile(del_key_file):
-        del_key_spec = "%s" % del_key_file
+        params.append("%s" % del_key_file)
     else:
         raise ValueError(_("luks_remove_key requires either a passphrase or a key file to remove"))
 
     os.close(p[1])
 
-    rc = execWithRedirect("cryptsetup",
-                                ["-q",
-                                 key_spec,
-                                 "luksRemoveKey",
-                                 device,
-                                 del_key_spec],
+    rc = execWithRedirect("cryptsetup", params,
                                 stdin = p[0],
                                 stdout = "/dev/null",
                                 stderr = "/dev/null",
@@ -152,7 +148,7 @@ def luks_remove_key(device,
 
     os.close(p[0])
     if rc:
-        raise RuntimeError(_("luks_remove_key failed"))
+        raise RuntimeError(_("luks_remove_key failed with errcode %d") % (rc,))
 
 def prepare_passphrase_file(phrase):
     """Takes passphrase and returns safe temporary file with this phrase, for use as keyfile in cryptsetup"""
