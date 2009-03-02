@@ -20,6 +20,7 @@ VERSION := $(shell awk '/Version:/ { print $$2 }' python-cryptsetup.spec)
 RELEASE := $(shell awk '/Release:/ { print $$2 }' python-cryptsetup.spec)
 DATADIR := $(shell rpm --eval "%_datadir")
 
+archive: tarball
 tarball:
 	git-archive --format=tar --prefix=$(NAME)-$(VERSION)/ HEAD | bzip2 -f > $(NAME)-$(VERSION).tar.bz2
 
@@ -34,7 +35,7 @@ bumpver:
 	NEWSUBVER=$$((`echo $(VERSION) | cut -d . -f 3`+1)); \
 	sed -i "s/Version:        $(VERSION)/Version:        $$MAYORVER.$$NEWSUBVER/" python-cryptsetup.spec; \
 	sed -i "s/Release:        .*%/Release:        1%/" python-cryptsetup.spec; \
-	sed -i "s/version=.*/version='$$MAYORVER.$$NEWSUBVER',/" setup.py;
+	sed -i "s/version = .*/version = '$$MAYORVER.$$NEWSUBVER',/" setup.py;
 	git commit -a -m "Bump version"
 
 newver:

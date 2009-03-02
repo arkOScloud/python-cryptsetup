@@ -42,6 +42,10 @@ rm -rf $RPM_BUILD_ROOT
 %doc selftest.py
 
 %changelog
+* Mon Mar 01 2009 Martin Sivak <msivak at redhat dot com> - 0.0.3-1
+- Improve documentation
+- luksFormat now accepts keyfile argument
+
 * Mon Feb 23 2009 Martin Sivak <msivak at redhat dot com> - 0.0.2-1
 - Throw a runtime exception when buildvalue problem is encountered
 
