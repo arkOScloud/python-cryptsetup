@@ -13,6 +13,7 @@ typedef struct {
   PyObject *yesDialogCB;
   PyObject *cmdLineLogCB;
   struct interface_callbacks cmd_icb; /* cryptsetup CB structure */
+  char* uuid;
 } CryptSetupObject;
 
 CryptSetupObject *this; /* hack because the #%^#$% has no user data pointer for CBs */
@@ -58,8 +59,17 @@ void cmdLineLog(int cls, char *msg)
   }
 }
 
+void uuidLog(int cls, char* uuid)
+{
+  if(this->uuid) free(this->uuid);
+  this->uuid = strdup(uuid);
+}
+
 static void CryptSetup_dealloc(CryptSetupObject* self)
 {
+  /* free uuid cache */
+  if(this->uuid) free(this->uuid);
+
   /* free the callbacks */
   Py_XDECREF(self->yesDialogCB);
   Py_XDECREF(self->cmdLineLogCB);
@@ -80,6 +90,7 @@ static PyObject *CryptSetup_new(PyTypeObject *type, PyObject *args, PyObject *kw
     /* set the callback proxies */
     self->cmd_icb.yesDialog = &(yesDialog);
     self->cmd_icb.log = &(cmdLineLog);
+    self->uuid = NULL;
   }
 
   return (PyObject *)self;
@@ -180,30 +191,38 @@ static PyObject *CryptSetup_log(CryptSetupObject* self, PyObject *args, PyObject
 
 #define CryptSetup_luksUUID_HELP "Get UUID of the LUKS device\n\
 \n\
-  int luksUUID(device)"
+  luksUUID(device)"
 
 static PyObject *CryptSetup_luksUUID(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
   static char *kwlist[] = {"device", NULL};
   char* device=NULL;
   PyObject *result;
-  int uuid;
+  int uuidres;
 
   if (! PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, 
 	&device))
     return NULL;
+  
+  struct interface_callbacks cmd_icb; /* cryptsetup CB structure */
+  cmd_icb.yesDialog = &(yesDialog);
+  cmd_icb.log = &(uuidLog); /* stupid crappy API... */
 
   struct crypt_options co = {
     .device = device,
-    .icb = &(self->cmd_icb),
+    .icb = &cmd_icb,
   };
 
   /* hack, because the #&^#%& API has no user data pointer */
   this = self;
 
-  uuid = crypt_luksUUID(&co);
+  uuidres = crypt_luksUUID(&co);
+  if(uuidres){
+    PyErr_SetString(PyExc_RuntimeError, "Error getting UUID for device");
+    return NULL;
+  }
 
-  result = Py_BuildValue("i", uuid);
+  result = Py_BuildValue("s", self->uuid);
   if(!result){
     PyErr_SetString(PyExc_RuntimeError, "Error during constructing values for return value");
     return NULL;
@@ -214,7 +233,11 @@ static PyObject *CryptSetup_luksUUID(CryptSetupObject* self, PyObject *args, PyO
 
 #define CryptSetup_isLuks_HELP "Is the device LUKS?\n\
 \n\
-  int isLuks(device)"
+  isLuks(device)\n\
+\n\
+  return value:\n\
+   0   - device is LUKS\n\
+  -22  - device is not LUKS"
 
 static PyObject *CryptSetup_isLuks(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
