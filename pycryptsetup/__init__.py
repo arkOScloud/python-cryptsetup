@@ -33,3 +33,6 @@ class CryptSetup(cryptsetup.CryptSetup):
     def removeKey(self, device, del_passphrase=None, del_key_file=None, passphrase=None, key_file=None):
         return fillins.luks_remove_key(device, del_passphrase, del_key_file, passphrase, key_file)
 
+    def prepare_passphrase_file(self, phrase):
+        return fillins.prepare_passphrase_file(phrase)
+

@@ -23,6 +23,7 @@ import subprocess
 import os, string, stat
 import os.path
 from errno import *
+from tempfile import mkstemp
 
 ## Run an external program and redirect the output to a file.
 # @param command The command to run.
@@ -153,5 +154,10 @@ def luks_remove_key(device,
     if rc:
         raise RuntimeError(_("luks_remove_key failed"))
 
-
+def prepare_passphrase_file(phrase):
+    """Takes passphrase and returns safe temporary file with this phrase, for use as keyfile in cryptsetup"""
+    handle, name = mkstemp(text = False)
+    os.write(handle, phrase)
+    os.close(handle)
+    return name
 
