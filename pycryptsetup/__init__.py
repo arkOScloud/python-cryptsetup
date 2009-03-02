@@ -23,6 +23,10 @@ import cryptsetup
 import fillins
 
 class CryptSetup(cryptsetup.CryptSetup):
+    """def __init__(yesDialog, logFunc)
+ yesDialog - python function with func(text) signature, which asks the user question text and returns 1 of the answer was positive or 0 if not
+ logFunc   - python function with func(level, text) signature to log stuff somewhere"""
+
     def addKey(self, device, new_passphrase=None, new_key_file=None, passphrase=None, key_file=None):
         return fillins.luks_add_key(device, new_passphrase, new_key_file, passphrase, key_file)
     

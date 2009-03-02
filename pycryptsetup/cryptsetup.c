@@ -85,6 +85,14 @@ static PyObject *CryptSetup_new(PyTypeObject *type, PyObject *args, PyObject *kw
   return (PyObject *)self;
 }
 
+#define CryptSetup_HELP "CryptSetup object\n\
+\n\
+constructor takes two arguments:\n\
+  __init__(yesDialog, logFunc)\n\
+\n\
+  yesDialog - python function with func(text) signature, which asks the user question text and returns 1 of the answer was positive or 0 if not\n\
+  logFunc   - python function with func(level, text) signature to log stuff somewhere"
+
 static int CryptSetup_init(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
   PyObject *yesDialogCB=NULL, *cmdLineLogCB=NULL, *tmp=NULL;
@@ -111,6 +119,10 @@ static int CryptSetup_init(CryptSetupObject* self, PyObject *args, PyObject *kwd
   return 0;
 }
 
+#define CryptSetup_askyes_HELP "Asks a question using the configured dialog CB\n\
+\n\
+  int askyes(message)"
+
 static PyObject *CryptSetup_askyes(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
   static char *kwlist[] = {"message", NULL};
@@ -134,6 +146,10 @@ static PyObject *CryptSetup_askyes(CryptSetupObject* self, PyObject *args, PyObj
 
   return result;
 }
+
+#define CryptSetup_log_HELP "Logs a string using the configured log CB\n\
+\n\
+  log(int level, message)"
 
 static PyObject *CryptSetup_log(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
@@ -161,6 +177,10 @@ static PyObject *CryptSetup_log(CryptSetupObject* self, PyObject *args, PyObject
 
   return result;
 }
+
+#define CryptSetup_luksUUID_HELP "Get UUID of the LUKS device\n\
+\n\
+  int luksUUID(device)"
 
 static PyObject *CryptSetup_luksUUID(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
@@ -192,6 +212,9 @@ static PyObject *CryptSetup_luksUUID(CryptSetupObject* self, PyObject *args, PyO
   return result;
 }
 
+#define CryptSetup_isLuks_HELP "Is the device LUKS?\n\
+\n\
+  int isLuks(device)"
 
 static PyObject *CryptSetup_isLuks(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
@@ -223,6 +246,14 @@ static PyObject *CryptSetup_isLuks(CryptSetupObject* self, PyObject *args, PyObj
   return result;
 }
 
+#define CryptSetup_luksStatus_HELP "What is the status of Luks subsystem?\n\
+\n\
+  luksStatus(name)\n\
+\n\
+  return value:\n\
+  - dictionary with luks status\n\
+  - or number <=0 if the device is not active"
+  
 static PyObject *CryptSetup_luksStatus(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
   static char *kwlist[] = {"name", NULL};
@@ -275,17 +306,27 @@ static PyObject *CryptSetup_luksStatus(CryptSetupObject* self, PyObject *args, P
   return result;
 }
 
+#define CryptSetup_luksFormat_HELP "Format device to enable LUKS\n\
+\n\
+  luksFormat(device, cipher, keysize, keyfile = None)\n\
+\n\
+  device - which device?\n\
+  cipher - text string to specify cipher (cipher-mode-iv:hash_for_iv. probably aes-cbc-essiv:sha256 or aes-xts-plain)\n\
+  keysize - key size in bits, cipher must support this\n\
+  keyfile - filename which contains the key for encrypting this device. If None, cryptsetup will ask for one."
+
 static PyObject *CryptSetup_luksFormat(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
-  static char *kwlist[] = {"device", "cipher", "keysize", NULL};
+  static char *kwlist[] = {"device", "cipher", "keysize", "keyfile", NULL};
   char* device=NULL;
   char* cipher=NULL;
+  char* keyfile=NULL;
   int keysize;
   PyObject *result;
   int is;
 
-  if (! PyArg_ParseTupleAndKeywords(args, kwds, "ssi", kwlist, 
-	&device, &cipher, &keysize))
+  if (! PyArg_ParseTupleAndKeywords(args, kwds, "ssi|s", kwlist, 
+	&device, &cipher, &keysize, &keyfile))
     return NULL;
 
   struct crypt_options co = {
@@ -293,7 +334,7 @@ static PyObject *CryptSetup_luksFormat(CryptSetupObject* self, PyObject *args, P
     .key_size = keysize / 8, // in bytes, cipher must support this, for AES: 128,256 bits
     .key_slot = -1,
     .cipher = cipher, // cipher-mode-iv:hash_for_iv. probably aes-cbc-essiv:sha256 or aes-xts-plain
-    .new_key_file = NULL,
+    .new_key_file = keyfile,
     .flags = 0,
     .iteration_time = 1000,
     .align_payload = 0,
@@ -313,6 +354,14 @@ static PyObject *CryptSetup_luksFormat(CryptSetupObject* self, PyObject *args, P
 
   return result;
 }
+
+#define CryptSetup_luksOpen_HELP "Open LUKS device and add it do devmapper\n\
+\n\
+  luksOpen(device, name, keyfile)\n\
+\n\
+  device - which device?\n\
+  name - what mapping name should be created\n\
+  keyfile - filename which contains the key for encrypting this device. '-' means standard input"
 
 static PyObject *CryptSetup_luksOpen(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
@@ -348,6 +397,11 @@ static PyObject *CryptSetup_luksOpen(CryptSetupObject* self, PyObject *args, PyO
   return result;
 }
 
+#define CryptSetup_luksClose_HELP "Close LUKS device and remove it from devmapper\n\
+\n\
+  luksClose(name)\n\
+\n\
+  the mapping name which should be removed from devmapper."
 static PyObject *CryptSetup_luksClose(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
   static char *kwlist[] = {"name", NULL};
@@ -386,18 +440,18 @@ static PyMemberDef CryptSetup_members[] = {
 
 static PyMethodDef CryptSetup_methods[] = {
   /* self-test methods */
-  {"log", (PyCFunction)CryptSetup_log, METH_VARARGS|METH_KEYWORDS, "Logs a string using the configured log CB"},
-  {"askyes", (PyCFunction)CryptSetup_askyes, METH_VARARGS|METH_KEYWORDS, "Asks a question using the configured dialog CB"},
+  {"log", (PyCFunction)CryptSetup_log, METH_VARARGS|METH_KEYWORDS, CryptSetup_askyes_HELP},
+  {"askyes", (PyCFunction)CryptSetup_askyes, METH_VARARGS|METH_KEYWORDS, CryptSetup_log_HELP},
 
   /* cryptsetup info entrypoints */
-  {"luksUUID", (PyCFunction)CryptSetup_luksUUID, METH_VARARGS|METH_KEYWORDS, "Get UUID of the LUKS device"},
-  {"isLuks", (PyCFunction)CryptSetup_isLuks, METH_VARARGS|METH_KEYWORDS, "Is the device LUKS?"},
-  {"luksStatus", (PyCFunction)CryptSetup_luksStatus, METH_VARARGS|METH_KEYWORDS, "What is the status of Luks subsystem?"},
+  {"luksUUID", (PyCFunction)CryptSetup_luksUUID, METH_VARARGS|METH_KEYWORDS, CryptSetup_luksUUID_HELP},
+  {"isLuks", (PyCFunction)CryptSetup_isLuks, METH_VARARGS|METH_KEYWORDS, CryptSetup_isLuks_HELP},
+  {"luksStatus", (PyCFunction)CryptSetup_luksStatus, METH_VARARGS|METH_KEYWORDS, CryptSetup_luksStatus_HELP},
   
   /* cryptsetup mgmt entrypoints */
-  {"luksFormat", (PyCFunction)CryptSetup_luksFormat, METH_VARARGS|METH_KEYWORDS, "Format device to enable LUKS"},
-  {"luksOpen", (PyCFunction)CryptSetup_luksOpen, METH_VARARGS|METH_KEYWORDS, "Open LUKS device and add it do devmapper"},
-  {"luksClose", (PyCFunction)CryptSetup_luksClose, METH_VARARGS|METH_KEYWORDS, "Close LUKS device and remove it from devmapper"},
+  {"luksFormat", (PyCFunction)CryptSetup_luksFormat, METH_VARARGS|METH_KEYWORDS, CryptSetup_luksFormat_HELP},
+  {"luksOpen", (PyCFunction)CryptSetup_luksOpen, METH_VARARGS|METH_KEYWORDS, CryptSetup_luksOpen_HELP},
+  {"luksClose", (PyCFunction)CryptSetup_luksClose, METH_VARARGS|METH_KEYWORDS, CryptSetup_luksClose_HELP},
 
   {NULL}  /* Sentinel */
 };
@@ -424,7 +478,7 @@ static PyTypeObject CryptSetupType = {
   0,                         /*tp_setattro*/
   0,                         /*tp_as_buffer*/
   Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /*tp_flags*/
-  "CryptSetup object",     /* tp_doc */
+  CryptSetup_HELP,     /* tp_doc */
   0,                   /* tp_traverse */
   0,	               /* tp_clear */
   0,                   /* tp_richcompare */
