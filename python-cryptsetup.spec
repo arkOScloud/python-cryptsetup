@@ -42,17 +42,20 @@ rm -rf $RPM_BUILD_ROOT
 %doc selftest.py
 
 %changelog
-* Mon Mar 01 2009 Martin Sivak <msivak at redhat dot com> - 0.0.5-1
+* Wed Mar 05 2209 Martin Sivak <msivak at redhat dot com> - 0.0.7-1
+- add default cipher mode and key to luksFormat
+
+* Mon Mar 02 2009 Martin Sivak <msivak at redhat dot com> - 0.0.6-1
 - fix the UUID extraction logic
 - fix the key manipulation
 
-* Mon Mar 01 2009 Martin Sivak <msivak at redhat dot com> - 0.0.5-1
+* Mon Mar 02 2009 Martin Sivak <msivak at redhat dot com> - 0.0.5-1
 - fix the luksUUID
 
-* Mon Mar 01 2009 Martin Sivak <msivak at redhat dot com> - 0.0.4-1
+* Mon Mar 02 2009 Martin Sivak <msivak at redhat dot com> - 0.0.4-1
 - add prepare_passphrase_file method
 
-* Mon Mar 01 2009 Martin Sivak <msivak at redhat dot com> - 0.0.3-1
+* Mon Mar 02 2009 Martin Sivak <msivak at redhat dot com> - 0.0.3-1
 - Improve documentation
 - luksFormat now accepts keyfile argument
 

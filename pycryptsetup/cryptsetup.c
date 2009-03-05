@@ -343,13 +343,13 @@ static PyObject *CryptSetup_luksFormat(CryptSetupObject* self, PyObject *args, P
 {
   static char *kwlist[] = {"device", "cipher", "keysize", "keyfile", NULL};
   char* device=NULL;
-  char* cipher=NULL;
+  char* cipher="aes-cbc-essiv:sha256";
   char* keyfile=NULL;
-  int keysize;
+  int keysize = 256;
   PyObject *result;
   int is;
 
-  if (! PyArg_ParseTupleAndKeywords(args, kwds, "ssi|s", kwlist, 
+  if (! PyArg_ParseTupleAndKeywords(args, kwds, "s|sis", kwlist, 
 	&device, &cipher, &keysize, &keyfile))
     return NULL;
 
