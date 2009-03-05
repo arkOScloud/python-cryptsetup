@@ -119,9 +119,12 @@ def luks_remove_key(device,
                     del_passphrase=None, del_key_file=None,
                     passphrase=None, key_file=None):
 
-    params = ["-q"]
+    params = []
 
     p = os.pipe()
+    if del_passphrase: #the first question is about the key we want to remove
+        os.write(p[1], "%s\n" % del_passphrase)
+
     if passphrase:
         os.write(p[1], "%s\n" % passphrase)
     elif key_file and os.path.isfile(key_file):
@@ -132,7 +135,7 @@ def luks_remove_key(device,
     params.extend(["luksRemoveKey", device])
 
     if del_passphrase:
-        os.write(p[1], "%s\n" % del_passphrase)
+        pass
     elif del_key_file and os.path.isfile(del_key_file):
         params.append("%s" % del_key_file)
     else:
