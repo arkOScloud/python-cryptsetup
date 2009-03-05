@@ -42,7 +42,7 @@ rm -rf $RPM_BUILD_ROOT
 %doc selftest.py
 
 %changelog
-* Thu Mar 05 2209 Martin Sivak <msivak at redhat dot com> - 0.0.7-1
+* Thu Mar 05 2009 Martin Sivak <msivak at redhat dot com> - 0.0.7-1
 - add default cipher mode and key to luksFormat
 
 * Mon Mar 02 2009 Martin Sivak <msivak at redhat dot com> - 0.0.6-1
