@@ -90,7 +90,7 @@ def luks_add_key(device,
     if passphrase:
         os.write(p[1], "%s\n" % passphrase)
     elif key_file and os.path.isfile(key_file):
-        params.append("--key-file %s" % key_file)
+        params.extend(["--key-file", key_file])
     else:
         raise ValueError(_("luks_add_key requires either a passphrase or a key file"))
 
@@ -128,7 +128,7 @@ def luks_remove_key(device,
     if passphrase:
         os.write(p[1], "%s\n" % passphrase)
     elif key_file and os.path.isfile(key_file):
-        params.append("--key-file %s" % key_file)
+        params.extend(["--key-file", key_file])
     else:
         raise ValueError(_("luks_remove_key requires either a passphrase or a key file"))
 
