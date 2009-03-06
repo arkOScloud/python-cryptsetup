@@ -1,7 +1,7 @@
 %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 
 Name:           python-cryptsetup
-Version:        0.0.7
+Version:        0.0.8
 Release:        1%{?dist}
 Summary:        Python bindings for cryptsetup
 
@@ -42,6 +42,10 @@ rm -rf $RPM_BUILD_ROOT
 %doc selftest.py
 
 %changelog
+* Fri Mar 06 2009 Martin Sivak <msivak at redhat dot com> - 0.0.8-1
+- Fix the params for add and remove key routines
+- Workaround one SIGSEGV in cryptsetup and change the order of passwords in luksRemoveKey
+
 * Thu Mar 05 2009 Martin Sivak <msivak at redhat dot com> - 0.0.7-1
 - add default cipher mode and key to luksFormat
 
