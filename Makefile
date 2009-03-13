@@ -37,6 +37,7 @@ bumpver:
 	sed -i "s/Release:        .*%/Release:        1%/" python-cryptsetup.spec; \
 	sed -i "s/version = .*/version = '$$MAYORVER.$$NEWSUBVER',/" setup.py;
 	git commit -a -m "Bump version"
+	git tag "$(NAME)-$$MAYORVER.$$NEWSUBVER"
 
 newver:
 	make bumpver
