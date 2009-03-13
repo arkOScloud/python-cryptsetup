@@ -332,7 +332,7 @@ static PyObject *CryptSetup_luksStatus(CryptSetupObject* self, PyObject *args, P
 
 #define CryptSetup_luksFormat_HELP "Format device to enable LUKS\n\
 \n\
-  luksFormat(device, cipher, keysize, keyfile = None)\n\
+  luksFormat(device, cipher = 'aes-cbc-essiv:sha256', keysize = 256, keyfile = None)\n\
 \n\
   device - which device?\n\
   cipher - text string to specify cipher (cipher-mode-iv:hash_for_iv. probably aes-cbc-essiv:sha256 or aes-xts-plain)\n\
@@ -343,15 +343,34 @@ static PyObject *CryptSetup_luksFormat(CryptSetupObject* self, PyObject *args, P
 {
   static char *kwlist[] = {"device", "cipher", "keysize", "keyfile", NULL};
   char* device=NULL;
-  char* cipher="aes-cbc-essiv:sha256";
+  char* cipher=NULL;
   char* keyfile=NULL;
   int keysize = 256;
+  PyObject *keysize_object = NULL;
   PyObject *result;
   int is;
 
-  if (! PyArg_ParseTupleAndKeywords(args, kwds, "s|sis", kwlist, 
-	&device, &cipher, &keysize, &keyfile))
+  if (! PyArg_ParseTupleAndKeywords(args, kwds, "s|zOz", kwlist, 
+	&device, &cipher, &keysize_object, &keyfile))
     return NULL;
+
+  if(!keysize_object || keysize_object==Py_None){
+    //use default value
+  } else if(!PyInt_Check(keysize_object)){
+    PyErr_SetString(PyExc_TypeError, "keysize must be an integer");
+    return NULL;
+  } else if(PyInt_AsLong(keysize_object) % 8){
+    PyErr_SetString(PyExc_TypeError, "keysize must have integer value dividable by 8");
+    return NULL;
+  } else if(PyInt_AsLong(keysize_object)<=0){
+    PyErr_SetString(PyExc_TypeError, "keysize must be positive number bigger than 0");
+    return NULL;
+  } else{
+    keysize = PyInt_AsLong(keysize_object);
+  }
+
+
+  if(!cipher) cipher="aes-cbc-essiv:sha256";
 
   struct crypt_options co = {
     .device = device,
