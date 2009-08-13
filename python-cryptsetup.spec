@@ -47,6 +47,9 @@ rm -rf $RPM_BUILD_ROOT
 %doc selftest.py
 
 %changelog
+* Thu Aug 13 2009 Martin Sivak <msivak at redhat dot com> - 0.0.9-2
+- spec file change, point to proper project url
+
 * Fri Mar 13 2009 Martin Sivak <msivak at redhat dot com> - 0.0.9-1
 - luksFormat accepts None values and then uses defaults
 
