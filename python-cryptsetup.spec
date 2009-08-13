@@ -7,8 +7,13 @@ Summary:        Python bindings for cryptsetup
 
 Group:          Development/Libraries
 License:        GPLv2+
-Url:            http://msivak.fedorapeople.org/pycryptsetup
-Source:         http://msivak.fedorapeople.org/pycryptsetup/%{name}-%{version}.tar.bz2
+Url:            http://git.fedorahosted.org/git/?p=python-cryptsetup.git
+
+# To generate source do
+# git clone git://git.fedorahosted.org/python-cryptsetup.git
+# make archive
+
+Source0:        %{name}-%{version}.tar.bz2
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  cryptsetup-luks-devel
