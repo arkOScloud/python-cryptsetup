@@ -69,7 +69,7 @@ void uuidLog(int cls, char* uuid)
 static void CryptSetup_dealloc(CryptSetupObject* self)
 {
   /* free uuid cache */
-  if(this->uuid) free(this->uuid);
+  if(self->uuid) free(self->uuid);
 
   /* free the callbacks */
   Py_XDECREF(self->yesDialogCB);

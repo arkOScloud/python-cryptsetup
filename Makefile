@@ -22,7 +22,7 @@ DATADIR := $(shell rpm --eval "%_datadir")
 
 archive: tarball
 tarball:
-	git-archive --format=tar --prefix=$(NAME)-$(VERSION)/ HEAD | bzip2 -f > $(NAME)-$(VERSION).tar.bz2
+	git archive --format=tar --prefix=$(NAME)-$(VERSION)/ HEAD | bzip2 -f > $(NAME)-$(VERSION).tar.bz2
 
 srpm: tarball
 	mkdir -p $(HOME)/rpm/SOURCES
