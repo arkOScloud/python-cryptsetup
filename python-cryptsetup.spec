@@ -1,8 +1,8 @@
 %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 
 Name:           python-cryptsetup
-Version:        0.0.9
-Release:        3%{?dist}
+Version:        0.0.10
+Release:        1%{?dist}
 Summary:        Python bindings for cryptsetup
 
 Group:          Development/Libraries
@@ -47,6 +47,9 @@ rm -rf $RPM_BUILD_ROOT
 %doc selftest.py
 
 %changelog
+* Wed Aug 26 2009 Martin Sivak <msivak at redhat dot com> - 0.0.10-1
+- fix the crash in dealloc routine
+
 * Thu Aug 13 2009 Martin Sivak <msivak at redhat dot com> - 0.0.9-3
 - spec file change, point to proper project url
 
