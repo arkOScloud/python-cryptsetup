@@ -22,13 +22,13 @@ DATADIR := $(shell rpm --eval "%_datadir")
 
 archive: tarball
 tarball:
-	git archive --format=tar --prefix=$(NAME)-$(VERSION)/ HEAD | bzip2 -f > $(NAME)-$(VERSION).tar.bz2
+	git archive --format=tar --prefix=$(NAME)-$(VERSION)/ HEAD | gzip -9 > $(NAME)-$(VERSION).tar.gz
 
 srpm: tarball
 	mkdir -p $(HOME)/rpm/SOURCES
-	cp $(NAME)-$(VERSION).tar.bz2 $(HOME)/rpm/SOURCES
+	cp $(NAME)-$(VERSION).tar.gz $(HOME)/rpm/SOURCES
 	rpmbuild -bs --nodeps $(NAME).spec
-	rm -f $(NAME)-$(VERSION).tar.bz2
+	rm -f $(NAME)-$(VERSION).tar.gz
 
 bumpver:
 	@MAYORVER=$$(echo $(VERSION) | cut -d . -f 1-2); \
