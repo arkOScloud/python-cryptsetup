@@ -2,7 +2,7 @@
 
 Name:           python-cryptsetup
 Version:        0.0.10
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Python bindings for cryptsetup
 
 Group:          Development/Libraries
@@ -18,6 +18,7 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  cryptsetup-luks-devel
 BuildRequires:  python
+BuildRequires:  python-devel
 BuildRequires:  python-setuptools-devel
 
 %description
@@ -47,6 +48,10 @@ rm -rf $RPM_BUILD_ROOT
 %doc selftest.py
 
 %changelog
+* Tue Dec 08 2009 Martin Sivak <msivak at redhat dot com> - 0.0.10-2
+- add python-devel into build requires
+- change the Url so it uses git repo
+
 * Wed Aug 26 2009 Martin Sivak <msivak at redhat dot com> - 0.0.10-1
 - fix the crash in dealloc routine
 
