@@ -380,7 +380,7 @@ static PyObject *CryptSetup_luksFormat(CryptSetupObject* self, PyObject *args, P
     .new_key_file = keyfile,
     .flags = 0,
     .iteration_time = 1000,
-    .align_payload = 0,
+    .align_payload = 2048,
     .icb = &(self->cmd_icb),
   };
 
