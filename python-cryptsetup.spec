@@ -1,8 +1,8 @@
 %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 
 Name:           python-cryptsetup
-Version:        0.0.10
-Release:        2%{?dist}
+Version:        0.0.11
+Release:        1%{?dist}
 Summary:        Python bindings for cryptsetup
 
 Group:          Development/Libraries
@@ -48,6 +48,10 @@ rm -rf $RPM_BUILD_ROOT
 %doc selftest.py
 
 %changelog
+* Fri Aug 13 2010 Martin Sivak <msivak at redhat dot com> - 0.0.11-1
+- Different payload alignment
+  Resolves: rhbz#623703
+
 * Tue Dec 08 2009 Martin Sivak <msivak at redhat dot com> - 0.0.10-2
 - add python-devel into build requires
 - change the Url so it uses git repo
