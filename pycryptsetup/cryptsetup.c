@@ -174,6 +174,54 @@ static int CryptSetup_init(CryptSetupObject* self, PyObject *args, PyObject *kwd
   return 0;
 }
 
+#define CryptSetup_activate_HELP "Activate LUKS device\n\
+\n\
+  activate(name)"
+
+static PyObject *CryptSetup_activate(CryptSetupObject* self, PyObject *args, PyObject *kwds)
+{
+  static char *kwlist[] = {"name", NULL};
+  PyObject *result;
+  int is;
+  char *name = NULL;
+
+  if (! PyArg_ParseTupleAndKeywords(args, kwds, "z", kwlist, 
+                                    &name))
+
+
+  is = crypt_activate_by_passphrase(self->device, name,
+                               CRYPT_ANY_SLOT, NULL, 0, flags);
+
+  result = Py_BuildValue("i", is);
+  if(!result){
+    PyErr_SetString(PyExc_RuntimeError, "Error during constructing values for return value");
+    return NULL;
+  }
+
+  return result;
+}
+
+#define CryptSetup_deactivate_HELP "Dectivate LUKS device\n\
+\n\
+  deactivate()"
+
+static PyObject *CryptSetup_deactivate(CryptSetupObject* self, PyObject *args, PyObject *kwds)
+{
+  PyObject *result;
+  int is;
+  char *passphrase = NULL;
+
+  is = crypt_deactivate(self->device, crypt_get_device_name(self->device));
+
+  result = Py_BuildValue("i", is);
+  if(!result){
+    PyErr_SetString(PyExc_RuntimeError, "Error during constructing values for return value");
+    return NULL;
+  }
+
+  return result;
+}
+
 #define CryptSetup_askyes_HELP "Asks a question using the configured dialog CB\n\
 \n\
   int askyes(message)"
@@ -239,34 +287,9 @@ static PyObject *CryptSetup_log(CryptSetupObject* self, PyObject *args, PyObject
 
 static PyObject *CryptSetup_luksUUID(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
-  static char *kwlist[] = {"device", NULL};
-  char* device=NULL;
   PyObject *result;
-  int uuidres;
-
-  if (! PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, 
-	&device))
-    return NULL;
   
-  struct interface_callbacks cmd_icb; /* cryptsetup CB structure */
-  cmd_icb.yesDialog = &(yesDialog);
-  cmd_icb.log = &(uuidLog); /* stupid crappy API... */
-
-  struct crypt_options co = {
-    .device = device,
-    .icb = &cmd_icb,
-  };
-
-  /* hack, because the #&^#%& API has no user data pointer */
-  this = self;
-
-  uuidres = crypt_luksUUID(&co);
-  if(uuidres){
-    PyErr_SetString(PyExc_RuntimeError, "Error getting UUID for device");
-    return NULL;
-  }
-
-  result = Py_BuildValue("s", self->uuid);
+  result = Py_BuildValue("s", crypt_get_uuid(self->device));
   if(!result){
     PyErr_SetString(PyExc_RuntimeError, "Error during constructing values for return value");
     return NULL;
@@ -277,24 +300,14 @@ static PyObject *CryptSetup_luksUUID(CryptSetupObject* self, PyObject *args, PyO
 
 #define CryptSetup_isLuks_HELP "Is the device LUKS?\n\
 \n\
-  isLuks(device)\n\
-\n\
-  return value:\n\
-   0   - device is LUKS\n\
-  -22  - device is not LUKS"
+  isLuks()"
 
-static PyObject *CryptSetup_isLuks(CryptSetupObject* self, PyObject *args, PyObject *kwds)
+static PyObject *CryptSetup_isLuks(CryptSetupObject* self, PyObject *args, PyObOAject *kwds)
 {
-  static char *kwlist[] = {"device", NULL};
-  char* device=NULL;
   PyObject *result;
   int is;
 
-  if (! PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, 
-	&device))
-    return NULL;
-
-  is = crypt_isLuks(&co);
+  is = crypt_load(self->device, CRYPT_LUKS1, NULL);
 
   result = Py_BuildValue("i", is);
   if(!result){
@@ -309,11 +322,16 @@ static PyObject *CryptSetup_isLuks(CryptSetupObject* self, PyObject *args, PyObj
 #define CryptSetup_Info_HELP "Returns dictionary with info about opened device\n\
 Keys:\n\
 dir\n\
+name\n\
 uuid\n\
 cipher\n\
 cipher_mode\n\
 keysize\n\
+device\n\
 offset\n\
+size\n\
+skip\n\
+mode\n\
 "
 
 static PyObject *CryptSetup_Info(CryptSetupObject* self, PyObject *args, PyObject *kwds)
@@ -323,13 +341,9 @@ static PyObject *CryptSetup_Info(CryptSetupObject* self, PyObject *args, PyObjec
   PyObject *result;
   crypt_status_info is;
 
-  if (! PyArg_ParseTupleAndKeywords(args, kwds, "", kwlist, 
-	&device))
-    return NULL;
-
   result = Py_BuildValue("{s:s,s:s,s:s,s:i,s:s,s:K,s:K,s:K,s:s}",
                          "dir", crypt_get_dir(),
-                         "name", co.name,
+                         "name", crypt_get_device_name(self->device),
                          "uuid", crypt_get_uuid(self->device),
                          "cipher", crypt_get_cipher(self->device),
                          "cipher_mode", crypt_get_cipher_mode(self->device),
@@ -351,26 +365,23 @@ static PyObject *CryptSetup_Info(CryptSetupObject* self, PyObject *args, PyObjec
 
 #define CryptSetup_luksFormat_HELP "Format device to enable LUKS\n\
 \n\
-  luksFormat(device, cipher = 'aes-cbc-essiv:sha256', keysize = 256, keyfile = None)\n\
+  luksFormat(cipher = 'aes', cipherMode = 'cbc-essiv:sha256', keysize = 256)\n\
 \n\
-  device - which device?\n\
-  cipher - text string to specify cipher (cipher-mode-iv:hash_for_iv. probably aes-cbc-essiv:sha256 or aes-xts-plain)\n\
-  keysize - key size in bits, cipher must support this\n\
-  keyfile - filename which contains the key for encrypting this device. If None, cryptsetup will ask for one."
+  cipher - text string to specify cipher\n\
+  cipherMode -  (mode-iv:hash_for_iv. probably aes-cbc-essiv:sha256 or aes-xts-plain)\n\
+  keysize - key size in bits, cipher must support this."
 
 static PyObject *CryptSetup_luksFormat(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
-  static char *kwlist[] = {"cipher", "keysize", "keyfile", NULL};
-  char* device=NULL;
+  static char *kwlist[] = {"cipher", "cipherMode", "keysize", NULL};
+  char* cipher_mode=NULL;
   char* cipher=NULL;
-  char* keyfile=NULL;
   int keysize = 256;
   PyObject *keysize_object = NULL;
   PyObject *result;
-  int is;
 
-  if (! PyArg_ParseTupleAndKeywords(args, kwds, "s|zOz", kwlist, 
-	&device, &cipher, &keysize_object, &keyfile))
+  if (! PyArg_ParseTupleAndKeywords(args, kwds, "zzO", kwlist, 
+                                    &cipher, &cipher_mode, &keysize_object))
     return NULL;
 
   if(!keysize_object || keysize_object==Py_None){
@@ -389,24 +400,10 @@ static PyObject *CryptSetup_luksFormat(CryptSetupObject* self, PyObject *args, P
   }
 
 
-  if(!cipher) cipher="aes-cbc-essiv:sha256";
+  if(!cipher) cipher="aes";
+  if(!cipher_mode) cipher_mode="cbc-essiv:sha256";
 
-  struct crypt_options co = {
-    .device = device,
-    .key_size = keysize / 8, // in bytes, cipher must support this, for AES: 128,256 bits
-    .key_slot = -1,
-    .cipher = cipher, // cipher-mode-iv:hash_for_iv. probably aes-cbc-essiv:sha256 or aes-xts-plain
-    .new_key_file = keyfile,
-    .flags = 0,
-    .iteration_time = 1000,
-    .align_payload = 2048,
-    .icb = &(self->cmd_icb),
-  };
-
-  /* hack, because the #&^#%& API has no user data pointer */
-  this = self;
-
-  is = crypt_luksFormat(&co);
+  is = crypt_format(self->device, CRYPT_LUKS1, cipher, cipher_mode, NULL, NULL, keysize / 8, NULL);
 
   result = Py_BuildValue("i", is);
   if(!result){
@@ -517,10 +514,14 @@ static PyMethodDef CryptSetup_methods[] = {
   {"log", (PyCFunction)CryptSetup_log, METH_VARARGS|METH_KEYWORDS, CryptSetup_askyes_HELP},
   {"askyes", (PyCFunction)CryptSetup_askyes, METH_VARARGS|METH_KEYWORDS, CryptSetup_log_HELP},
 
+  /* activation and deactivation */
+  {"deactivate", (PyCFunction)CryptSetup_deactivate, METH_NOARGS, CryptSetup_deactivate_HELP},
+  {"activate", (PyCFunction)CryptSetup_activate, METH_VARARGS|METH_KEYWORDS, CryptSetup_activate_HELP},
+
   /* cryptsetup info entrypoints */
-  {"luksUUID", (PyCFunction)CryptSetup_luksUUID, METH_VARARGS|METH_KEYWORDS, CryptSetup_luksUUID_HELP},
-  {"isLuks", (PyCFunction)CryptSetup_isLuks, METH_VARARGS|METH_KEYWORDS, CryptSetup_isLuks_HELP},
-  {"info", (PyCFunction)CryptSetup_Info, METH_VARARGS|METH_KEYWORDS, CryptSetup_Info_HELP},  
+  {"luksUUID", (PyCFunction)CryptSetup_luksUUID, METH_NOARGS, CryptSetup_luksUUID_HELP},
+  {"isLuks", (PyCFunction)CryptSetup_isLuks, METH_NOARGS, CryptSetup_isLuks_HELP},
+  {"info", (PyCFunction)CryptSetup_Info, METH_NOARGS, CryptSetup_Info_HELP},  
 
   /* cryptsetup mgmt entrypoints */
   {"luksFormat", (PyCFunction)CryptSetup_luksFormat, METH_VARARGS|METH_KEYWORDS, CryptSetup_luksFormat_HELP},
