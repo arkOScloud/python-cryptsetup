@@ -52,6 +52,9 @@ rm -rf $RPM_BUILD_ROOT
 - Different payload alignment
   Resolves: rhbz#623703
 
+* Thu Jul 22 2010 David Malcolm <dmalcolm@redhat.com> - 0.0.10-3
+- Rebuilt for https://fedoraproject.org/wiki/Features/Python_2.7/MassRebuild
+
 * Tue Dec 08 2009 Martin Sivak <msivak at redhat dot com> - 0.0.10-2
 - add python-devel into build requires
 - change the Url so it uses git repo
