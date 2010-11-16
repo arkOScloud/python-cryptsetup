@@ -12,18 +12,18 @@ typedef struct {
   /* Type-specific fields go here. */
   PyObject *yesDialogCB;
   PyObject *cmdLineLogCB;
-  struct interface_callbacks cmd_icb; /* cryptsetup CB structure */
-  char* uuid;
+  PyObject *passwordDialogCB;
+  struct crypt_device *device;
 } CryptSetupObject;
 
-CryptSetupObject *this; /* hack because the #%^#$% has no user data pointer for CBs */
 
-int yesDialog(char *msg)
+int yesDialog(char *msg, void *this0)
 {
   PyObject *result;
   PyObject *arglist;
   int res;
   int ok;
+  CryptSetupObject *this = (CryptSetupObject *)this0;
 
   if(this->yesDialogCB){
     arglist = Py_BuildValue("(s)", msg);
@@ -45,7 +45,36 @@ int yesDialog(char *msg)
   return 1;
 }
 
-void cmdLineLog(int cls, char *msg)
+int passwordDialog(char *msg, void *this0)
+{
+  PyObject *result;
+  PyObject *arglist;
+  CryptSetupObject *this = (CryptSetupObject *)this0;  
+  int res;
+  int ok;
+
+  if(this->yesDialogCB){
+    arglist = Py_BuildValue("(s)", msg);
+    if(!arglist) return 0;
+    result = PyEval_CallObject(this->passwordDialogCB, arglist);
+    Py_DECREF(arglist);
+
+    if (result == NULL) return 0;
+    ok = PyArg_ParseTuple(result, "i", &res);
+    if(!ok){
+      res = 0;
+    }
+
+    Py_DECREF(result);
+    return res;
+  }
+  else return 1;
+
+  return 1;
+}
+
+
+void cmdLineLog(struct crypt_device *cd, int cls, char *msg)
 {
   PyObject *result;
   PyObject *arglist;
@@ -59,21 +88,13 @@ void cmdLineLog(int cls, char *msg)
   }
 }
 
-void uuidLog(int cls, char* uuid)
-{
-  if(!uuid || uuid[0]=='\n') return;
-  if(this->uuid) free(this->uuid);
-  this->uuid = strdup(uuid);
-}
-
 static void CryptSetup_dealloc(CryptSetupObject* self)
 {
-  /* free uuid cache */
-  if(self->uuid) free(self->uuid);
-
   /* free the callbacks */
   Py_XDECREF(self->yesDialogCB);
   Py_XDECREF(self->cmdLineLogCB);
+  Py_XDECREF(self->passwordDialogCB);
+
   /* free self */
   self->ob_type->tp_free((PyObject*)self);
 }
@@ -85,13 +106,8 @@ static PyObject *CryptSetup_new(PyTypeObject *type, PyObject *args, PyObject *kw
   self = (CryptSetupObject *)type->tp_alloc(type, 0);
   if (self != NULL) {
     self->yesDialogCB = NULL;
+    self->passwordDialogCB = NULL;
     self->cmdLineLogCB = NULL;
-    memset(&(self->cmd_icb), 0, sizeof(struct interface_callbacks));
-    
-    /* set the callback proxies */
-    self->cmd_icb.yesDialog = &(yesDialog);
-    self->cmd_icb.log = &(cmdLineLog);
-    self->uuid = NULL;
   }
 
   return (PyObject *)self;
@@ -99,26 +115,52 @@ static PyObject *CryptSetup_new(PyTypeObject *type, PyObject *args, PyObject *kw
 
 #define CryptSetup_HELP "CryptSetup object\n\
 \n\
-constructor takes two arguments:\n\
-  __init__(yesDialog, logFunc)\n\
+constructor takes one to five arguments:\n\
+  __init__(device, name, yesDialog, passwordDialog, logFunc)\n\
 \n\
   yesDialog - python function with func(text) signature, which asks the user question text and returns 1 of the answer was positive or 0 if not\n\
   logFunc   - python function with func(level, text) signature to log stuff somewhere"
 
 static int CryptSetup_init(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
-  PyObject *yesDialogCB=NULL, *cmdLineLogCB=NULL, *tmp=NULL;
-  static char *kwlist[] = {"yesDialog", "logFunc", NULL};
+    PyObject *yesDialogCB=NULL,
+             *passwordDialog=NULL,
+             *cmdLineLogCB=NULL,
+             *tmp=NULL;
+    char *device = NULL, *deviceName = NULL;
 
-  if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO", kwlist, 
-	&yesDialogCB, &cmdLineLogCB))
+  static char *kwlist[] = {"device", "name", "yesDialog", "passwordDialog", "logFunc", NULL};
+
+  if (!PyArg_ParseTupleAndKeywords(args, kwds, "|ssOOO", kwlist, 
+                                   &device, &deviceName,
+                                   &yesDialogCB, &passwordDialog,
+                                   &cmdLineLogCB))
     return -1;
+
+  if (device) {
+      crypt_init(&(self->device), device);
+      crypt_load(self->device, NULL, NULL);
+  } else if (name) {
+      crypt_init_by_name(&(self->device), name);
+      crypt_load(self->device, NULL, NULL);
+  } else {
+      /* TODO XXX error */
+  }
 
   if(yesDialogCB){
     tmp = self->yesDialogCB;
     Py_INCREF(yesDialogCB);
     self->yesDialogCB = yesDialogCB;
     Py_XDECREF(tmp);
+    crypt_set_confirm_callback(self->device, yesDialog, self);
+  }
+
+  if(passwordDialogCB){
+    tmp = self->passwordDialogCB;
+    Py_INCREF(passwordDialogCB);
+    self->passwordDialogCB = passwordDialogCB;
+    Py_XDECREF(tmp);
+    crypt_set_password_callback(self->device, passwordDialog, self);
   }
   
   if(cmdLineLogCB){
@@ -126,6 +168,7 @@ static int CryptSetup_init(CryptSetupObject* self, PyObject *args, PyObject *kwd
     Py_INCREF(cmdLineLogCB);
     self->cmdLineLogCB = cmdLineLogCB;
     Py_XDECREF(tmp);
+    crypt_set_log_callback(self->device, cmdLineLog, self);
   }
 
   return 0;
@@ -251,14 +294,6 @@ static PyObject *CryptSetup_isLuks(CryptSetupObject* self, PyObject *args, PyObj
 	&device))
     return NULL;
 
-  struct crypt_options co = {
-    .device = device,
-    .icb = &(self->cmd_icb),
-  };
-
-  /* hack, because the #&^#%& API has no user data pointer */
-  this = self;
-
   is = crypt_isLuks(&co);
 
   result = Py_BuildValue("i", is);
@@ -270,61 +305,45 @@ static PyObject *CryptSetup_isLuks(CryptSetupObject* self, PyObject *args, PyObj
   return result;
 }
 
-#define CryptSetup_luksStatus_HELP "What is the status of Luks subsystem?\n\
-\n\
-  luksStatus(name)\n\
-\n\
-  return value:\n\
-  - dictionary with luks status\n\
-  - or number <=0 if the device is not active"
-  
-static PyObject *CryptSetup_luksStatus(CryptSetupObject* self, PyObject *args, PyObject *kwds)
+
+#define CryptSetup_Info_HELP "Returns dictionary with info about opened device\n\
+Keys:\n\
+dir\n\
+uuid\n\
+cipher\n\
+cipher_mode\n\
+keysize\n\
+offset\n\
+"
+
+static PyObject *CryptSetup_Info(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
   static char *kwlist[] = {"name", NULL};
   char* device=NULL;
   PyObject *result;
-  int is;
+  crypt_status_info is;
 
-  if (! PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, 
+  if (! PyArg_ParseTupleAndKeywords(args, kwds, "", kwlist, 
 	&device))
     return NULL;
 
-  struct crypt_options co = {
-    .name = device,
-    .icb = &(self->cmd_icb),
-  };
+  result = Py_BuildValue("{s:s,s:s,s:s,s:i,s:s,s:K,s:K,s:K,s:s}",
+                         "dir", crypt_get_dir(),
+                         "name", co.name,
+                         "uuid", crypt_get_uuid(self->device),
+                         "cipher", crypt_get_cipher(self->device),
+                         "cipher_mode", crypt_get_cipher_mode(self->device),
+                         "keysize", crypt_get_volume_key_size(self->device)*8,
+                         "device", co.device,
+                         "offset", crypt_get_data_offset(self->device),
+                         "size", co.size,
+                         "skip", co.skip,
+                         "mode", (co.flags & CRYPT_FLAG_READONLY) ? "readonly" : "read/write"
+                         );
 
-  /* hack, because the #&^#%& API has no user data pointer */
-  this = self;
-
-  is = crypt_query_device(&co);
-
-  if(is>0){
-    result = Py_BuildValue("{s:s,s:s,s:s,s:i,s:s,s:K,s:K,s:K,s:s}",
-	"dir", crypt_get_dir(),
-	"name", co.name,
-	"cipher", co.cipher,
-	"keysize", co.key_size * 8,
-	"device", co.device,
-	"offset", co.offset,
-	"size", co.size,
-	"skip", co.skip,
-	"mode", (co.flags & CRYPT_FLAG_READONLY) ? "readonly" : "read/write"
-	);
-    crypt_put_options(&co);
-
-    if(!result){
+  if(!result){
       PyErr_SetString(PyExc_RuntimeError, "Error during constructing values for return value");
       return NULL;
-    }
-
-  }
-  else{
-    result = Py_BuildValue("i", is);
-    if(!result){
-      PyErr_SetString(PyExc_RuntimeError, "Error during constructing values for return value");
-      return NULL;
-    }
   }
 
   return result;
@@ -341,7 +360,7 @@ static PyObject *CryptSetup_luksStatus(CryptSetupObject* self, PyObject *args, P
 
 static PyObject *CryptSetup_luksFormat(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
-  static char *kwlist[] = {"device", "cipher", "keysize", "keyfile", NULL};
+  static char *kwlist[] = {"cipher", "keysize", "keyfile", NULL};
   char* device=NULL;
   char* cipher=NULL;
   char* keyfile=NULL;
@@ -398,38 +417,57 @@ static PyObject *CryptSetup_luksFormat(CryptSetupObject* self, PyObject *args, P
   return result;
 }
 
-#define CryptSetup_luksOpen_HELP "Open LUKS device and add it do devmapper\n\
-\n\
-  luksOpen(device, name, keyfile)\n\
-\n\
-  device - which device?\n\
-  name - what mapping name should be created\n\
-  keyfile - filename which contains the key for encrypting this device. '-' means standard input"
 
-static PyObject *CryptSetup_luksOpen(CryptSetupObject* self, PyObject *args, PyObject *kwds)
+#define CryptSetup_Status_HELP "What is the status of Luks subsystem?\n\
+\n\
+  luksStatus(name)\n\
+\n\
+  return value:\n\
+  - number with luks status"
+  
+static PyObject *CryptSetup_Status(PyObject *args, PyObject *kwds)
 {
-  static char *kwlist[] = {"device", "name", "keyfile", NULL};
+  static char *kwlist[] = {"name", NULL};
   char* device=NULL;
-  char* name=NULL;
-  char* keyfile="-";
+  PyObject *result;
+  crypt_status_info is;
+
+  if (! PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, 
+	&device))
+    return NULL;
+OA
+  is = crypt_status(device);
+  result = Py_BuildValue("i", is);
+  if(!result){
+      PyErr_SetString(PyExc_RuntimeError, "Error during constructing values for return value");
+      return NULL;
+  }
+  return result;
+}
+
+
+
+#define CryptSetup_Resume_HELP "Resume LUKS device\n\
+\n\
+  luksOpen(passphrase)\n\
+\n\
+  passphrase - string or none to ask the user"
+
+static PyObject *CryptSetup_Resume(PyObject *args, PyObject *kwds)
+{
+  static char *kwlist[] = {"name", "passphrase", NULL};
+  char* passphrase=NULL, *name=NULL;
   PyObject *result;
   int is;
+  size_t passphrase_len;
 
-  if (! PyArg_ParseTupleAndKeywords(args, kwds, "ss|s", kwlist, 
-	&device, &name, &keyfile))
+  if (! PyArg_ParseTupleAndKeywords(args, kwds, "s|s", kwlist, 
+                                    &name, &passphrase))
     return NULL;
 
-  struct crypt_options co = {
-    .device = device,
-    .name = name,
-    .key_file = keyfile,
-    .icb = &(self->cmd_icb),
-  };
+  if(passphrase) passphrase_len = len(passphrase);
 
-  /* hack, because the #&^#%& API has no user data pointer */
-  this = self;
-
-  is = crypt_luksOpen(&co);
+  is = crypt_resume_by_passphrase(self->device, name, CRYPT_ANY_SLOT, passphrase, passphrase_len);
 
   result = Py_BuildValue("i", is);
   if(!result){
@@ -440,12 +478,12 @@ static PyObject *CryptSetup_luksOpen(CryptSetupObject* self, PyObject *args, PyO
   return result;
 }
 
-#define CryptSetup_luksClose_HELP "Close LUKS device and remove it from devmapper\n\
+#define CryptSetup_Suspend_HELP "Close LUKS device and remove it from devmapper\n\
 \n\
   luksClose(name)\n\
 \n\
   the mapping name which should be removed from devmapper."
-static PyObject *CryptSetup_luksClose(CryptSetupObject* self, PyObject *args, PyObject *kwds)
+static PyObject *CryptSetup_Suspend(PyObject *args, PyObject *kwds)
 {
   static char *kwlist[] = {"name", NULL};
   char* device=NULL;
@@ -456,15 +494,7 @@ static PyObject *CryptSetup_luksClose(CryptSetupObject* self, PyObject *args, Py
 	&device))
     return NULL;
 
-  struct crypt_options co = {
-    .name = device,
-    .icb = &(self->cmd_icb),
-  };
-
-  /* hack, because the #&^#%& API has no user data pointer */
-  this = self;
-
-  is = crypt_remove_device(&co);
+  is = crypt_suspend(device);
 
   result = Py_BuildValue("i", is);
   if(!result){
@@ -478,6 +508,7 @@ static PyObject *CryptSetup_luksClose(CryptSetupObject* self, PyObject *args, Py
 static PyMemberDef CryptSetup_members[] = {
   {"yesDialogCB", T_OBJECT_EX, offsetof(CryptSetupObject, yesDialogCB), 0, "confirmation dialog callback"},
   {"cmdLineLogCB", T_OBJECT_EX, offsetof(CryptSetupObject, cmdLineLogCB), 0, "logging callback"},
+  {"passwordDialogCB", T_OBJECT_EX, offsetof(CryptSetupObject, passwordDialogCB), 0, "password dialog callback"},
   {NULL}
 };
 
@@ -489,12 +520,10 @@ static PyMethodDef CryptSetup_methods[] = {
   /* cryptsetup info entrypoints */
   {"luksUUID", (PyCFunction)CryptSetup_luksUUID, METH_VARARGS|METH_KEYWORDS, CryptSetup_luksUUID_HELP},
   {"isLuks", (PyCFunction)CryptSetup_isLuks, METH_VARARGS|METH_KEYWORDS, CryptSetup_isLuks_HELP},
-  {"luksStatus", (PyCFunction)CryptSetup_luksStatus, METH_VARARGS|METH_KEYWORDS, CryptSetup_luksStatus_HELP},
-  
+  {"info", (PyCFunction)CryptSetup_Info, METH_VARARGS|METH_KEYWORDS, CryptSetup_Info_HELP},  
+
   /* cryptsetup mgmt entrypoints */
   {"luksFormat", (PyCFunction)CryptSetup_luksFormat, METH_VARARGS|METH_KEYWORDS, CryptSetup_luksFormat_HELP},
-  {"luksOpen", (PyCFunction)CryptSetup_luksOpen, METH_VARARGS|METH_KEYWORDS, CryptSetup_luksOpen_HELP},
-  {"luksClose", (PyCFunction)CryptSetup_luksClose, METH_VARARGS|METH_KEYWORDS, CryptSetup_luksClose_HELP},
 
   {NULL}  /* Sentinel */
 };
@@ -561,3 +590,7 @@ PyMODINIT_FUNC initcryptsetup(void)
   PyModule_AddObject(m, "CryptSetup", (PyObject *)&CryptSetupType);
 }
 
+/* TODO global methods */
+  {"status", (PyCFunction)CryptSetup_Status, METH_VARARGS|METH_KEYWORDS, CryptSetup_Status_HELP},
+  {"resume", (PyCFunction)CryptSetup_Resume, METH_VARARGS|METH_KEYWORDS, CryptSetup_Resume_HELP},
+  {"suspend", (PyCFunction)CryptSetup_Suspend, METH_VARARGS|METH_KEYWORDS, CryptSetup_Suspend_HELP},
