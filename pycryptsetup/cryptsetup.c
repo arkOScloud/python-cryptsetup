@@ -573,7 +573,11 @@ static PyTypeObject CryptSetupType = {
 
 
 static PyMethodDef cryptsetup_methods[] = {
-      {NULL}  /* Sentinel */
+    {"status", (PyCFunction)CryptSetup_Status, METH_VARARGS|METH_KEYWORDS, CryptSetup_Status_HELP},
+    {"resume", (PyCFunction)CryptSetup_Resume, METH_VARARGS|METH_KEYWORDS, CryptSetup_Resume_HELP},
+    {"suspend", (PyCFunction)CryptSetup_Suspend, METH_VARARGS|METH_KEYWORDS, CryptSetup_Suspend_HELP},
+
+    {NULL}  /* Sentinel */
 };
 
 #ifndef PyMODINIT_FUNC	/* declarations for DLL import/export */
@@ -591,7 +595,3 @@ PyMODINIT_FUNC initcryptsetup(void)
   PyModule_AddObject(m, "CryptSetup", (PyObject *)&CryptSetupType);
 }
 
-/* TODO global methods */
-  {"status", (PyCFunction)CryptSetup_Status, METH_VARARGS|METH_KEYWORDS, CryptSetup_Status_HELP},
-  {"resume", (PyCFunction)CryptSetup_Resume, METH_VARARGS|METH_KEYWORDS, CryptSetup_Resume_HELP},
-  {"suspend", (PyCFunction)CryptSetup_Suspend, METH_VARARGS|METH_KEYWORDS, CryptSetup_Suspend_HELP},
