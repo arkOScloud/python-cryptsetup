@@ -49,28 +49,26 @@ int passwordDialog(char *msg, void *this0)
 {
   PyObject *result;
   PyObject *arglist;
-  CryptSetupObject *this = (CryptSetupObject *)this0;  
-  int res;
+  CryptSetupObject *self = (CryptSetupObject *)this0;  
+  char *res;
   int ok;
 
-  if(this->yesDialogCB){
+  if(self->passwordDialogCB){
     arglist = Py_BuildValue("(s)", msg);
     if(!arglist) return 0;
-    result = PyEval_CallObject(this->passwordDialogCB, arglist);
+    result = PyEval_CallObject(self->passwordDialogCB, arglist);
     Py_DECREF(arglist);
 
     if (result == NULL) return 0;
-    ok = PyArg_ParseTuple(result, "i", &res);
+    ok = PyArg_ParseTuple(result, "s", &res);
     if(!ok){
-      res = 0;
+      res = NULL;
     }
 
     Py_DECREF(result);
     return res;
   }
-  else return 1;
-
-  return 1;
+  else return NULL;
 }
 
 
@@ -336,7 +334,6 @@ mode\n\
 
 static PyObject *CryptSetup_Info(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
-  static char *kwlist[] = {"name", NULL};
   char* device=NULL;
   PyObject *result;
   crypt_status_info is;
@@ -422,18 +419,18 @@ static PyObject *CryptSetup_luksFormat(CryptSetupObject* self, PyObject *args, P
   return value:\n\
   - number with luks status"
   
-static PyObject *CryptSetup_Status(PyObject *args, PyObject *kwds)
+static PyObject *CryptSetup_Status(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
-  static char *kwlist[] = {"name", NULL};
-  char* device=NULL;
+  char* name = crypt_get_device_name(self->device);
   PyObject *result;
   crypt_status_info is;
 
-  if (! PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, 
-	&device))
-    return NULL;
-OA
-  is = crypt_status(device);
+  if(!name){
+      PyErr_SetString(PyExc_RuntimeError, "Device has not been activated yet.");
+      return NULL;
+  }
+
+  is = crypt_status(name);
   result = Py_BuildValue("i", is);
   if(!result){
       PyErr_SetString(PyExc_RuntimeError, "Error during constructing values for return value");
@@ -450,16 +447,22 @@ OA
 \n\
   passphrase - string or none to ask the user"
 
-static PyObject *CryptSetup_Resume(PyObject *args, PyObject *kwds)
+static PyObject *CryptSetup_Resume(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
-  static char *kwlist[] = {"name", "passphrase", NULL};
-  char* passphrase=NULL, *name=NULL;
+  static char *kwlist[] = {"passphrase", NULL};
+  char* name = crypt_get_device_name(self->device);
+  char* passphrase=NULL;
   PyObject *result;
   int is;
   size_t passphrase_len;
 
-  if (! PyArg_ParseTupleAndKeywords(args, kwds, "s|s", kwlist, 
-                                    &name, &passphrase))
+  if(!name){
+      PyErr_SetString(PyExc_RuntimeError, "Device has not been activated yet.");
+      return NULL;
+  }
+
+  if (! PyArg_ParseTupleAndKeywords(args, kwds, "|s", kwlist, 
+                                    &passphrase))
     return NULL;
 
   if(passphrase) passphrase_len = len(passphrase);
@@ -480,18 +483,18 @@ static PyObject *CryptSetup_Resume(PyObject *args, PyObject *kwds)
   luksClose(name)\n\
 \n\
   the mapping name which should be removed from devmapper."
-static PyObject *CryptSetup_Suspend(PyObject *args, PyObject *kwds)
+static PyObject *CryptSetup_Suspend(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
-  static char *kwlist[] = {"name", NULL};
-  char* device=NULL;
   PyObject *result;
+  char* name = crypt_get_device_name(self->device);
   int is;
 
-  if (! PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, 
-	&device))
-    return NULL;
+  if(!name){
+      PyErr_SetString(PyExc_RuntimeError, "Device has not been activated yet.");
+      return NULL;
+  }
 
-  is = crypt_suspend(device);
+  is = crypt_suspend(name);
 
   result = Py_BuildValue("i", is);
   if(!result){
@@ -522,9 +525,15 @@ static PyMethodDef CryptSetup_methods[] = {
   {"luksUUID", (PyCFunction)CryptSetup_luksUUID, METH_NOARGS, CryptSetup_luksUUID_HELP},
   {"isLuks", (PyCFunction)CryptSetup_isLuks, METH_NOARGS, CryptSetup_isLuks_HELP},
   {"info", (PyCFunction)CryptSetup_Info, METH_NOARGS, CryptSetup_Info_HELP},  
+  {"status", (PyCFunction)CryptSetup_Status, METH_NOARGS, CryptSetup_Status_HELP},
 
   /* cryptsetup mgmt entrypoints */
   {"luksFormat", (PyCFunction)CryptSetup_luksFormat, METH_VARARGS|METH_KEYWORDS, CryptSetup_luksFormat_HELP},
+
+  /* suspend resume */
+  {"resume", (PyCFunction)CryptSetup_Resume, METH_VARARGS|METH_KEYWORDS, CryptSetup_Resume_HELP},
+  {"suspend", (PyCFunction)CryptSetup_Suspend, METH_NOARGS, CryptSetup_Suspend_HELP},
+
 
   {NULL}  /* Sentinel */
 };
@@ -573,10 +582,6 @@ static PyTypeObject CryptSetupType = {
 
 
 static PyMethodDef cryptsetup_methods[] = {
-    {"status", (PyCFunction)CryptSetup_Status, METH_VARARGS|METH_KEYWORDS, CryptSetup_Status_HELP},
-    {"resume", (PyCFunction)CryptSetup_Resume, METH_VARARGS|METH_KEYWORDS, CryptSetup_Resume_HELP},
-    {"suspend", (PyCFunction)CryptSetup_Suspend, METH_VARARGS|METH_KEYWORDS, CryptSetup_Suspend_HELP},
-
     {NULL}  /* Sentinel */
 };
 
