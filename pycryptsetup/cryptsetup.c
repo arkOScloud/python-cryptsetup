@@ -17,7 +17,7 @@ typedef struct {
 } CryptSetupObject;
 
 
-int yesDialog(char *msg, void *this0)
+int yesDialog(const char *msg, void *this0)
 {
   PyObject *result;
   PyObject *arglist;
@@ -45,7 +45,7 @@ int yesDialog(char *msg, void *this0)
   return 1;
 }
 
-int passwordDialog(char *msg, void *this0)
+int passwordDialog(const char *msg, char *buf, size_t length, void *this0)
 {
   PyObject *result;
   PyObject *arglist;
@@ -63,19 +63,26 @@ int passwordDialog(char *msg, void *this0)
     ok = PyArg_ParseTuple(result, "s", &res);
     if(!ok){
       res = NULL;
+      Py_DECREF(result);
+      return 0;
     }
 
+    // copy the password
+    strncpy(buf, res, length-1);
+
+    free(res);
     Py_DECREF(result);
-    return res;
+    return 1;
   }
-  else return NULL;
+  else return 0;
 }
 
 
-void cmdLineLog(struct crypt_device *cd, int cls, char *msg)
+void cmdLineLog(int cls, const char *msg, void *this0)
 {
   PyObject *result;
   PyObject *arglist;
+  CryptSetupObject *this = (CryptSetupObject *)this0;
 
   if(this->cmdLineLogCB){
     arglist = Py_BuildValue("(is)", cls, msg);
@@ -122,7 +129,7 @@ constructor takes one to five arguments:\n\
 static int CryptSetup_init(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
     PyObject *yesDialogCB=NULL,
-             *passwordDialog=NULL,
+             *passwordDialogCB=NULL,
              *cmdLineLogCB=NULL,
              *tmp=NULL;
     char *device = NULL, *deviceName = NULL;
@@ -131,15 +138,15 @@ static int CryptSetup_init(CryptSetupObject* self, PyObject *args, PyObject *kwd
 
   if (!PyArg_ParseTupleAndKeywords(args, kwds, "|ssOOO", kwlist, 
                                    &device, &deviceName,
-                                   &yesDialogCB, &passwordDialog,
+                                   &yesDialogCB, &passwordDialogCB,
                                    &cmdLineLogCB))
     return -1;
 
   if (device) {
       crypt_init(&(self->device), device);
       crypt_load(self->device, NULL, NULL);
-  } else if (name) {
-      crypt_init_by_name(&(self->device), name);
+  } else if (deviceName) {
+      crypt_init_by_name(&(self->device), deviceName);
       crypt_load(self->device, NULL, NULL);
   } else {
       /* TODO XXX error */
@@ -180,15 +187,15 @@ static PyObject *CryptSetup_activate(CryptSetupObject* self, PyObject *args, PyO
 {
   static char *kwlist[] = {"name", NULL};
   PyObject *result;
-  int is;
+  int is = 0;
   char *name = NULL;
 
   if (! PyArg_ParseTupleAndKeywords(args, kwds, "z", kwlist, 
                                     &name))
-
+      return NULL;
 
   is = crypt_activate_by_passphrase(self->device, name,
-                               CRYPT_ANY_SLOT, NULL, 0, flags);
+                               CRYPT_ANY_SLOT, NULL, 0, 0);
 
   result = Py_BuildValue("i", is);
   if(!result){
@@ -207,7 +214,6 @@ static PyObject *CryptSetup_deactivate(CryptSetupObject* self, PyObject *args, P
 {
   PyObject *result;
   int is;
-  char *passphrase = NULL;
 
   is = crypt_deactivate(self->device, crypt_get_device_name(self->device));
 
@@ -300,7 +306,7 @@ static PyObject *CryptSetup_luksUUID(CryptSetupObject* self, PyObject *args, PyO
 \n\
   isLuks()"
 
-static PyObject *CryptSetup_isLuks(CryptSetupObject* self, PyObject *args, PyObOAject *kwds)
+static PyObject *CryptSetup_isLuks(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
   PyObject *result;
   int is;
@@ -334,22 +340,19 @@ mode\n\
 
 static PyObject *CryptSetup_Info(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
-  char* device=NULL;
   PyObject *result;
-  crypt_status_info is;
 
   result = Py_BuildValue("{s:s,s:s,s:s,s:i,s:s,s:K,s:K,s:K,s:s}",
                          "dir", crypt_get_dir(),
-                         "name", crypt_get_device_name(self->device),
+                         "device", crypt_get_device_name(self->device),
                          "uuid", crypt_get_uuid(self->device),
                          "cipher", crypt_get_cipher(self->device),
                          "cipher_mode", crypt_get_cipher_mode(self->device),
                          "keysize", crypt_get_volume_key_size(self->device)*8,
-                         "device", co.device,
-                         "offset", crypt_get_data_offset(self->device),
-                         "size", co.size,
-                         "skip", co.skip,
-                         "mode", (co.flags & CRYPT_FLAG_READONLY) ? "readonly" : "read/write"
+                         //"name", co.device,
+                         //"size", co.size,
+                         //"mode", (co.flags & CRYPT_FLAG_READONLY) ? "readonly" : "read/write",
+                         "offset", crypt_get_data_offset(self->device)
                          );
 
   if(!result){
@@ -376,6 +379,7 @@ static PyObject *CryptSetup_luksFormat(CryptSetupObject* self, PyObject *args, P
   int keysize = 256;
   PyObject *keysize_object = NULL;
   PyObject *result;
+  int is;
 
   if (! PyArg_ParseTupleAndKeywords(args, kwds, "zzO", kwlist, 
                                     &cipher, &cipher_mode, &keysize_object))
@@ -421,7 +425,7 @@ static PyObject *CryptSetup_luksFormat(CryptSetupObject* self, PyObject *args, P
   
 static PyObject *CryptSetup_Status(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
-  char* name = crypt_get_device_name(self->device);
+  const char* name = crypt_get_device_name(self->device);
   PyObject *result;
   crypt_status_info is;
 
@@ -430,7 +434,7 @@ static PyObject *CryptSetup_Status(CryptSetupObject* self, PyObject *args, PyObj
       return NULL;
   }
 
-  is = crypt_status(name);
+  is = crypt_status(self->device, name);
   result = Py_BuildValue("i", is);
   if(!result){
       PyErr_SetString(PyExc_RuntimeError, "Error during constructing values for return value");
@@ -450,11 +454,11 @@ static PyObject *CryptSetup_Status(CryptSetupObject* self, PyObject *args, PyObj
 static PyObject *CryptSetup_Resume(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
   static char *kwlist[] = {"passphrase", NULL};
-  char* name = crypt_get_device_name(self->device);
-  char* passphrase=NULL;
+  const char* name = crypt_get_device_name(self->device);
+  char* passphrase = NULL;
+  size_t passphrase_len = 0;
   PyObject *result;
   int is;
-  size_t passphrase_len;
 
   if(!name){
       PyErr_SetString(PyExc_RuntimeError, "Device has not been activated yet.");
@@ -465,7 +469,7 @@ static PyObject *CryptSetup_Resume(CryptSetupObject* self, PyObject *args, PyObj
                                     &passphrase))
     return NULL;
 
-  if(passphrase) passphrase_len = len(passphrase);
+  if(passphrase) passphrase_len = strlen(passphrase);
 
   is = crypt_resume_by_passphrase(self->device, name, CRYPT_ANY_SLOT, passphrase, passphrase_len);
 
@@ -486,15 +490,15 @@ static PyObject *CryptSetup_Resume(CryptSetupObject* self, PyObject *args, PyObj
 static PyObject *CryptSetup_Suspend(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
   PyObject *result;
-  char* name = crypt_get_device_name(self->device);
-  int is;
+  const char* name = crypt_get_device_name(self->device);
+  int is = 0;
 
   if(!name){
       PyErr_SetString(PyExc_RuntimeError, "Device has not been activated yet.");
       return NULL;
   }
 
-  is = crypt_suspend(name);
+  is = crypt_suspend(self->device, name);
 
   result = Py_BuildValue("i", is);
   if(!result){
@@ -581,8 +585,8 @@ static PyTypeObject CryptSetupType = {
 };
 
 
-static PyMethodDef cryptsetup_methods[] = {
-    {NULL}  /* Sentinel */
+static PyMethodDef cryptsetup_methods[] = { 
+   {NULL}  /* Sentinel */
 };
 
 #ifndef PyMODINIT_FUNC	/* declarations for DLL import/export */
