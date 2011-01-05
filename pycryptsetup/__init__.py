@@ -19,23 +19,6 @@
 # the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA
 # 02139, USA.
 
-import cryptsetup
-import fillins
+from cryptsetup import *
 
-class CryptSetup(cryptsetup.CryptSetup):
-    """def __init__(device, name, yesDialog, passwordDialog, logFunc)
- device | name  - set one to the identification of the device you want to access
- yesDialog      - python function with func(text) signature, which asks the user question text and returns 1 of the answer was positive or 0 if not
- passwordDialog - 
- logFunc        - python function with func(level, text) signature to log stuff somewhere
- password"""
-
-    def addKey(self, device, new_passphrase=None, new_key_file=None, passphrase=None, key_file=None):
-        return fillins.luks_add_key(device, new_passphrase, new_key_file, passphrase, key_file)
-    
-    def removeKey(self, device, del_passphrase=None, del_key_file=None, passphrase=None, key_file=None):
-        return fillins.luks_remove_key(device, del_passphrase, del_key_file, passphrase, key_file)
-
-    def prepare_passphrase_file(self, phrase):
-        return fillins.prepare_passphrase_file(phrase)
 
