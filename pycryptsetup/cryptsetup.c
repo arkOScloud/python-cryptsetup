@@ -33,7 +33,7 @@ int yesDialog(const char *msg, void *this0)
     Py_DECREF(arglist);
 
     if (result == NULL) return 0;
-    ok = PyArg_ParseTuple(result, "i", &res);
+    ok = PyArg_Parse(result, "i", &res);
     if(!ok){
       res = 0;
     }
@@ -60,8 +60,9 @@ int passwordDialog(const char *msg, char *buf, size_t length, void *this0)
     Py_DECREF(arglist);
 
     if (result == NULL) return 0;
-    ok = PyArg_ParseTuple(result, "s", &res);
-    Py_DECREF(result);
+
+    ok = PyArg_Parse(result, "z", &res);
+    fprintf(stderr, "Parsing passw from callback result [%p]: %d %s [%p]\n", result, ok, res, res);
 
     if(!ok){
       return 0;
@@ -69,6 +70,7 @@ int passwordDialog(const char *msg, char *buf, size_t length, void *this0)
 
     // copy the password
     strncpy(buf, res, length-1);
+    Py_DECREF(result);
     fprintf(stderr, "Passphrase received: %s [%d]\n", buf, strlen(buf));
 
     return strlen(buf);
