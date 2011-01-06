@@ -45,13 +45,13 @@ print "create password", c2.addPassphrase("heslo")
 print "close sifra", c2.deactivate()
 print "open sifra", c2.activate("sifra", "heslo")
 
-import pdb; pdb.set_trace()
+#import pdb; pdb.set_trace()
 
 c3 = cryptsetup.CryptSetup(name="sifra", yesDialog = askyes, logFunc = log, passwordDialog = askpassword)
-print "sifra", c3.status()
+print "sifra", c3.info()
 
-print "close sifra", c2.deactivate()
+print "close sifra", c3.deactivate()
 
-print "sifra", c3.luksStatus()
+print "sifra", c3.info()
 
 

@@ -368,14 +368,14 @@ static PyObject *CryptSetup_Info(CryptSetupObject* self, PyObject *args, PyObjec
 {
   PyObject *result;
 
-  result = Py_BuildValue("{s:s,s:s,s:s,s:s,s:s,s:i,s:K}",
+  result = Py_BuildValue("{s:s,s:s,s:z,s:s,s:s,s:s,s:i,s:K}",
                          "dir", crypt_get_dir(),
                          "device", crypt_get_device_name(self->device),
+                         "name", self->activated_as,
                          "uuid", crypt_get_uuid(self->device),
                          "cipher", crypt_get_cipher(self->device),
                          "cipher_mode", crypt_get_cipher_mode(self->device),
                          "keysize", crypt_get_volume_key_size(self->device)*8,
-                         //"name", co.device,
                          //"size", co.size,
                          //"mode", (co.flags & CRYPT_FLAG_READONLY) ? "readonly" : "read/write",
                          "offset", crypt_get_data_offset(self->device)
@@ -489,7 +489,7 @@ static PyObject *CryptSetup_Status(CryptSetupObject* self, PyObject *args, PyObj
   crypt_status_info is;
 
   if(!name){
-      PyErr_SetString(PyExc_RuntimeError, "Device has not been activated yet.");
+      PyErr_SetString(PyExc_IOError, "Device has not been activated yet.");
       return NULL;
   }
 
@@ -520,7 +520,7 @@ static PyObject *CryptSetup_Resume(CryptSetupObject* self, PyObject *args, PyObj
   int is;
 
   if(!name){
-      PyErr_SetString(PyExc_RuntimeError, "Device has not been activated yet.");
+      PyErr_SetString(PyExc_IOError, "Device has not been activated yet.");
       return NULL;
   }
 
