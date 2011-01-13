@@ -474,6 +474,45 @@ static PyObject *CryptSetup_addPassphrase(CryptSetupObject* self, PyObject *args
   return result;
 }
 
+#define CryptSetup_removePassphrase_HELP "Destroy keyslot using passphrase\n\
+\n\
+  device.removePassphrase(passphrase)\n\
+\n\
+  passphrase - string or none to ask the user"
+
+static PyObject *CryptSetup_removePassphrase(CryptSetupObject* self, PyObject *args, PyObject *kwds)
+{
+  static char *kwlist[] = {"passphrase", NULL};
+  char* passphrase = NULL;
+  size_t passphrase_len = 0;
+  PyObject *result;
+  int is;
+
+  if (! PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, 
+                                    &passphrase))
+      return NULL;
+  
+  if(passphrase) passphrase_len = strlen(passphrase);
+  
+  fprintf(stderr, "Passphrase to delete: %s [%d]\n", passphrase, passphrase_len);
+  
+  is = crypt_activate_by_passphrase(self->device, NULL, CRYPT_ANY_SLOT,
+                                   passphrase, passphrase_len, 0);
+  if (is < 0)
+      goto out;
+  
+  is = crypt_keyslot_destroy(self->device, is);
+
+ out:
+  result = Py_BuildValue("i", is);
+  if(!result){
+      PyErr_SetString(PyExc_RuntimeError, "Error during constructing values for return value");
+      return NULL;
+  }
+
+  return result;
+}
+
 
 #define CryptSetup_Status_HELP "What is the status of Luks subsystem?\n\
 \n\
@@ -593,6 +632,7 @@ static PyMethodDef CryptSetup_methods[] = {
   /* cryptsetup mgmt entrypoints */
   {"luksFormat", (PyCFunction)CryptSetup_luksFormat, METH_VARARGS|METH_KEYWORDS, CryptSetup_luksFormat_HELP},
   {"addPassphrase", (PyCFunction)CryptSetup_addPassphrase, METH_VARARGS|METH_KEYWORDS, CryptSetup_addPassphrase_HELP},
+  {"removePassphrase", (PyCFunction)CryptSetup_removePassphrase, METH_VARARGS|METH_KEYWORDS, CryptSetup_removePassphrase_HELP},
 
   /* suspend resume */
   {"resume", (PyCFunction)CryptSetup_Resume, METH_VARARGS|METH_KEYWORDS, CryptSetup_Resume_HELP},
