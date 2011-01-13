@@ -443,27 +443,29 @@ static PyObject *CryptSetup_luksFormat(CryptSetupObject* self, PyObject *args, P
 
 #define CryptSetup_addPassphrase_HELP "Initialize keyslot using passphrase\n\
 \n\
-  device.addPassphrase(passphrase)\n\
+  device.addPassphrase(passphrase, newPassphrase)\n\
 \n\
-  passphrase - string or none to ask the user"
+  passphrase - string or none to ask the user\n\
+  newPassphrase - passphrase to add"
 
 static PyObject *CryptSetup_addPassphrase(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
-  static char *kwlist[] = {"passphrase", NULL};
+  static char *kwlist[] = {"passphrase", "newPassphrase", NULL};
   char* passphrase = NULL;
   size_t passphrase_len = 0;
+  char* newpassphrase = NULL;
+  size_t newpassphrase_len = 0;
   PyObject *result;
   int is;
 
-  if (! PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, 
-                                    &passphrase))
+  if (! PyArg_ParseTupleAndKeywords(args, kwds, "ss", kwlist, 
+                                    &passphrase, &newpassphrase))
     return NULL;
 
   if(passphrase) passphrase_len = strlen(passphrase);
+  if(newpassphrase) newpassphrase_len = strlen(newpassphrase);
 
-  fprintf(stderr, "Passphrase set to: %s [%d]\n", passphrase, passphrase_len);
-
-  is = crypt_keyslot_add_by_passphrase(self->device, CRYPT_ANY_SLOT, NULL, 0, passphrase, passphrase_len);
+  is = crypt_keyslot_add_by_passphrase(self->device, CRYPT_ANY_SLOT, passphrase, passphrase_len, newpassphrase, newpassphrase_len);
 
   result = Py_BuildValue("i", is);
   if(!result){
