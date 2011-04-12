@@ -494,7 +494,6 @@ static PyObject *CryptSetup_addKeyByVolumeKey(CryptSetupObject* self, PyObject *
                                     &newpassphrase))
     return NULL;
 
-  if(passphrase) passphrase_len = strlen(passphrase);
   if(newpassphrase) newpassphrase_len = strlen(newpassphrase);
 
   is = crypt_keyslot_add_by_volume_key(self->device, CRYPT_ANY_SLOT, NULL, 0, newpassphrase, newpassphrase_len);
