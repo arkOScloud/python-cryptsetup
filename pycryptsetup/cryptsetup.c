@@ -441,14 +441,14 @@ static PyObject *CryptSetup_luksFormat(CryptSetupObject* self, PyObject *args, P
   return result;
 }
 
-#define CryptSetup_addPassphrase_HELP "Initialize keyslot using passphrase\n\
+#define CryptSetup_addKeyByPassphrase_HELP "Initialize keyslot using passphrase\n\
 \n\
-  device.addPassphrase(passphrase, newPassphrase)\n\
+  device.addKeyByPassphrase(passphrase, newPassphrase)\n\
 \n\
   passphrase - string or none to ask the user\n\
   newPassphrase - passphrase to add"
 
-static PyObject *CryptSetup_addPassphrase(CryptSetupObject* self, PyObject *args, PyObject *kwds)
+static PyObject *CryptSetup_addKeyByPassphrase(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
   static char *kwlist[] = {"passphrase", "newPassphrase", NULL};
   char* passphrase = NULL;
@@ -475,6 +475,39 @@ static PyObject *CryptSetup_addPassphrase(CryptSetupObject* self, PyObject *args
 
   return result;
 }
+
+#define CryptSetup_addKeyByVolumeKey_HELP "Initialize keyslot using cached volume key\n\
+\n\
+  device.addKeyByVolumeKey(passphrase, newPassphrase)\n\
+\n\
+  newPassphrase - passphrase to add"
+
+static PyObject *CryptSetup_addKeyByVolumeKey(CryptSetupObject* self, PyObject *args, PyObject *kwds)
+{
+  static char *kwlist[] = {"passphrase", "newPassphrase", NULL};
+  char* newpassphrase = NULL;
+  size_t newpassphrase_len = 0;
+  PyObject *result;
+  int is;
+
+  if (! PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, 
+                                    &newpassphrase))
+    return NULL;
+
+  if(passphrase) passphrase_len = strlen(passphrase);
+  if(newpassphrase) newpassphrase_len = strlen(newpassphrase);
+
+  is = crypt_keyslot_add_by_volume_key(self->device, CRYPT_ANY_SLOT, NULL, 0, newpassphrase, newpassphrase_len);
+
+  result = Py_BuildValue("i", is);
+  if(!result){
+    PyErr_SetString(PyExc_RuntimeError, "Error during constructing values for return value");
+    return NULL;
+  }
+
+  return result;
+}
+
 
 #define CryptSetup_removePassphrase_HELP "Destroy keyslot using passphrase\n\
 \n\
@@ -633,7 +666,8 @@ static PyMethodDef CryptSetup_methods[] = {
 
   /* cryptsetup mgmt entrypoints */
   {"luksFormat", (PyCFunction)CryptSetup_luksFormat, METH_VARARGS|METH_KEYWORDS, CryptSetup_luksFormat_HELP},
-  {"addPassphrase", (PyCFunction)CryptSetup_addPassphrase, METH_VARARGS|METH_KEYWORDS, CryptSetup_addPassphrase_HELP},
+  {"addKeyByPassphrase", (PyCFunction)CryptSetup_addKeyByPassphrase, METH_VARARGS|METH_KEYWORDS, CryptSetup_addKeyByPassphrase_HELP},
+  {"addKeyByVolumeKey", (PyCFunction)CryptSetup_addKeyByVolumeKey, METH_VARARGS|METH_KEYWORDS, CryptSetup_addKeyByVolumeKey_HELP},
   {"removePassphrase", (PyCFunction)CryptSetup_removePassphrase, METH_VARARGS|METH_KEYWORDS, CryptSetup_removePassphrase_HELP},
 
   /* suspend resume */

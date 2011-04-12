@@ -1,8 +1,8 @@
 %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 
 Name:           python-cryptsetup
-Version:        0.1.0
-Release:        1%{?dist}
+Version:        0.1.1
+Release:        2%{?dist}
 Summary:        Python bindings for cryptsetup
 
 Group:          Development/Libraries
@@ -16,7 +16,7 @@ Url:            http://git.fedorahosted.org/git/?p=python-cryptsetup.git;a=snaps
 Source0:        %{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-Requires: cryptsetup-luks-lib >= 1.2.0
+Requires: cryptsetup-luks-libs >= 1.2.0
 BuildRequires:  cryptsetup-luks-devel >= 1.2.0
 BuildRequires:  python
 BuildRequires:  python-devel
@@ -49,6 +49,12 @@ rm -rf $RPM_BUILD_ROOT
 %doc selftest.py
 
 %changelog
+* Tue Apr 12 2010 Martin Sivak <msivak at redhat dot com> - 0.1.1-2
+- rename of one and addition of another method regarding keyslot initialization 
+
+* Tue Nov 16 2010 Martin Sivak <msivak at redhat dot com> - 0.1.0-2
+- Change package name in dependency
+
 * Tue Nov 16 2010 Martin Sivak <msivak at redhat dot com> - 0.1.0-1
 - Change in API! due to libcryptsetup rewrite
 
