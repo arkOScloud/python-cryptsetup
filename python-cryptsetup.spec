@@ -49,7 +49,7 @@ rm -rf $RPM_BUILD_ROOT
 %doc selftest.py
 
 %changelog
-* Tue Apr 12 2010 Martin Sivak <msivak at redhat dot com> - 0.1.1-2
+* Tue Apr 12 2011 Martin Sivak <msivak at redhat dot com> - 0.1.1-2
 - rename of one and addition of another method regarding keyslot initialization 
 
 * Tue Nov 16 2010 Martin Sivak <msivak at redhat dot com> - 0.1.0-2
