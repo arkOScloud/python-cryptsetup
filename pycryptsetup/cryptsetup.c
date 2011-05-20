@@ -547,6 +547,51 @@ static PyObject *CryptSetup_removePassphrase(CryptSetupObject* self, PyObject *a
   return result;
 }
 
+#define CryptSetup_killSlot_HELP "Destroy keyslot using passphrase\n\
+\n\
+  device.killSlot(passphrase,slot)\n\
+\n\
+  passphrase - string or none to ask the user\n\
+  slot - the slot to remove"
+
+static PyObject *CryptSetup_killSlot(CryptSetupObject* self, PyObject *args, PyObject *kwds)
+{
+  static char *kwlist[] = {"passphrase", "slot", NULL};
+  char* passphrase = NULL;
+  size_t passphrase_len = 0;
+  int slot = -1;
+  int slot_status = -1;
+  PyObject *result;
+  int is;
+
+  if (! PyArg_ParseTupleAndKeywords(args, kwds, "si", kwlist, &passphrase,&slot))
+      return NULL;
+
+  if(passphrase) passphrase_len = strlen(passphrase);
+
+  slot_status = crypt_keyslot_status(self->device, slot);
+  switch(slot_status){
+    case CRYPT_SLOT_INVALID:
+        PyErr_SetString(PyExc_ValueError, "Invalid slot");
+        return NULL;
+    case CRYPT_SLOT_INACTIVE:
+        PyErr_SetString(PyExc_ValueError, "Inactive slot");
+        return NULL;
+	case CRYPT_SLOT_ACTIVE_LAST:
+        PyErr_SetString(PyExc_ValueError, "Last slot, removing it would render the device unusable");
+        return NULL;
+  }
+  
+  is = crypt_keyslot_destroy(self->device, slot);
+
+  result = Py_BuildValue("i", is);
+  if(!result){
+      PyErr_SetString(PyExc_RuntimeError, "Error during constructing values for return value");
+      return NULL;
+  }
+
+  return result;
+}
 
 #define CryptSetup_Status_HELP "What is the status of Luks subsystem?\n\
 \n\
@@ -668,6 +713,7 @@ static PyMethodDef CryptSetup_methods[] = {
   {"addKeyByPassphrase", (PyCFunction)CryptSetup_addKeyByPassphrase, METH_VARARGS|METH_KEYWORDS, CryptSetup_addKeyByPassphrase_HELP},
   {"addKeyByVolumeKey", (PyCFunction)CryptSetup_addKeyByVolumeKey, METH_VARARGS|METH_KEYWORDS, CryptSetup_addKeyByVolumeKey_HELP},
   {"removePassphrase", (PyCFunction)CryptSetup_removePassphrase, METH_VARARGS|METH_KEYWORDS, CryptSetup_removePassphrase_HELP},
+  {"killSlot", (PyCFunction)CryptSetup_killSlot, METH_VARARGS|METH_KEYWORDS, CryptSetup_killSlot_HELP},
 
   /* suspend resume */
   {"resume", (PyCFunction)CryptSetup_Resume, METH_VARARGS|METH_KEYWORDS, CryptSetup_Resume_HELP},
