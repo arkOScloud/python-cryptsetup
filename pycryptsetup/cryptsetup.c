@@ -443,29 +443,31 @@ static PyObject *CryptSetup_luksFormat(CryptSetupObject* self, PyObject *args, P
 
 #define CryptSetup_addKeyByPassphrase_HELP "Initialize keyslot using passphrase\n\
 \n\
-  device.addKeyByPassphrase(passphrase, newPassphrase)\n\
+  device.addKeyByPassphrase(passphrase, newPassphrase, slot)\n\
 \n\
   passphrase - string or none to ask the user\n\
-  newPassphrase - passphrase to add"
+  newPassphrase - passphrase to add\n\
+  slot - which slot to use (optional)"
 
 static PyObject *CryptSetup_addKeyByPassphrase(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
-  static char *kwlist[] = {"passphrase", "newPassphrase", NULL};
+  static char *kwlist[] = {"passphrase", "newPassphrase", "slot", NULL};
   char* passphrase = NULL;
   size_t passphrase_len = 0;
   char* newpassphrase = NULL;
   size_t newpassphrase_len = 0;
+  int slot = CRYPT_ANY_SLOT;
   PyObject *result;
   int is;
 
-  if (! PyArg_ParseTupleAndKeywords(args, kwds, "ss", kwlist, 
-                                    &passphrase, &newpassphrase))
+  if (! PyArg_ParseTupleAndKeywords(args, kwds, "ss|i", kwlist, 
+                                    &passphrase, &newpassphrase, &slot))
     return NULL;
 
   if(passphrase) passphrase_len = strlen(passphrase);
   if(newpassphrase) newpassphrase_len = strlen(newpassphrase);
 
-  is = crypt_keyslot_add_by_passphrase(self->device, CRYPT_ANY_SLOT, passphrase, passphrase_len, newpassphrase, newpassphrase_len);
+  is = crypt_keyslot_add_by_passphrase(self->device, slot, passphrase, passphrase_len, newpassphrase, newpassphrase_len);
 
   result = Py_BuildValue("i", is);
   if(!result){
@@ -478,25 +480,27 @@ static PyObject *CryptSetup_addKeyByPassphrase(CryptSetupObject* self, PyObject 
 
 #define CryptSetup_addKeyByVolumeKey_HELP "Initialize keyslot using cached volume key\n\
 \n\
-  device.addKeyByVolumeKey(passphrase, newPassphrase)\n\
+  device.addKeyByVolumeKey(passphrase, newPassphrase, slot)\n\
 \n\
-  newPassphrase - passphrase to add"
+  newPassphrase - passphrase to add\n\
+  slot - which slot to use (optional)"
 
 static PyObject *CryptSetup_addKeyByVolumeKey(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
-  static char *kwlist[] = {"newPassphrase", NULL};
+  static char *kwlist[] = {"newPassphrase", "slot", NULL};
   char* newpassphrase = NULL;
   size_t newpassphrase_len = 0;
+  int slot = CRYPT_ANY_SLOT;
   PyObject *result;
   int is;
 
-  if (! PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, 
-                                    &newpassphrase))
+  if (! PyArg_ParseTupleAndKeywords(args, kwds, "s|i", kwlist, 
+                                    &newpassphrase,&slot))
     return NULL;
 
   if(newpassphrase) newpassphrase_len = strlen(newpassphrase);
 
-  is = crypt_keyslot_add_by_volume_key(self->device, CRYPT_ANY_SLOT, NULL, 0, newpassphrase, newpassphrase_len);
+  is = crypt_keyslot_add_by_volume_key(self->device, slot, NULL, 0, newpassphrase, newpassphrase_len);
 
   result = Py_BuildValue("i", is);
   if(!result){
