@@ -484,7 +484,7 @@ static PyObject *CryptSetup_addKeyByPassphrase(CryptSetupObject* self, PyObject 
 
 static PyObject *CryptSetup_addKeyByVolumeKey(CryptSetupObject* self, PyObject *args, PyObject *kwds)
 {
-  static char *kwlist[] = {"passphrase", "newPassphrase", NULL};
+  static char *kwlist[] = {"newPassphrase", NULL};
   char* newpassphrase = NULL;
   size_t newpassphrase_len = 0;
   PyObject *result;

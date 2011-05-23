@@ -1,8 +1,8 @@
 %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 
 Name:           python-cryptsetup
-Version:        0.1.1
-Release:        2%{?dist}
+Version:        0.1.2
+Release:        1%{?dist}
 Summary:        Python bindings for cryptsetup
 
 Group:          Development/Libraries
@@ -49,6 +49,9 @@ rm -rf $RPM_BUILD_ROOT
 %doc selftest.py
 
 %changelog
+* Mon May 23 2011 Martin Sivak <msivak at redhat dot com> - 0.1.2-1
+- fix traceback in addKeyByVolumeKey
+
 * Tue Apr 12 2011 Martin Sivak <msivak at redhat dot com> - 0.1.1-2
 - rename of one and addition of another method regarding keyslot initialization 
 
