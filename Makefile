@@ -31,12 +31,12 @@ srpm: tarball
 	rm -f $(NAME)-$(VERSION).tar.gz
 
 bumpver:
-	@MAYORVER=$$(echo $(VERSION) | cut -d . -f 1-2); \
-	NEWSUBVER=$$((`echo $(VERSION) | cut -d . -f 3`+1)); \
-	sed -i "s/Version:        $(VERSION)/Version:        $$MAYORVER.$$NEWSUBVER/" python-cryptsetup.spec; \
-	sed -i "s/Release:        .*%/Release:        1%/" python-cryptsetup.spec; \
-	sed -i "s/version = .*/version = '$$MAYORVER.$$NEWSUBVER',/" setup.py; \
-	git commit -a -m "Bump version" \
+	@MAYORVER=$$(echo $(VERSION) | cut -d . -f 1-2);
+	NEWSUBVER=$$((`echo $(VERSION) | cut -d . -f 3`+1));
+	sed -i "s/Version:        $(VERSION)/Version:        $$MAYORVER.$$NEWSUBVER/" python-cryptsetup.spec;
+	sed -i "s/Release:        .*%/Release:        1%/" python-cryptsetup.spec;
+	sed -i "s/version = .*/version = '$$MAYORVER.$$NEWSUBVER',/" setup.py;
+	git commit -a -m "Bump version"
 	git tag "$(NAME)-$$MAYORVER.$$NEWSUBVER"
 
 newver:
