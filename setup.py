@@ -1,11 +1,9 @@
-from distutils.core import setup, Extension
+from setuptools import setup, Extension
 setup(name="pycryptsetup",
-              version = '0.1.4',
-              description = "Python bindings for cryptsetup",
-              author = "Martin Sivak",
-              author_email= "msivak@redhat.com",
-              license = 'GPLv2+',
-              packages = ["pycryptsetup"],
-              ext_modules = [Extension("cryptsetup", ["pycryptsetup/cryptsetup.c"], library_dirs=['.'], libraries=['cryptsetup'])]
-              )
-
+      version = '1.7.2',
+      description = "Python bindings for cryptsetup",
+      author = "Martin Sivak",
+      author_email= "msivak@redhat.com",
+      license = 'GPLv2+',
+      ext_modules = [Extension("pycryptsetup", ["pycryptsetup.c"], libraries=['cryptsetup'])]
+      )
